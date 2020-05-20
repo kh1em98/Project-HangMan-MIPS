@@ -1,0 +1,387 @@
+.data
+	# Gia su co toi da 250 de thi
+	inStop : .asciiz "Ham dung o day"
+	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
+	inSoNgauNhien: .asciiz "So ngau nhien la : "
+	tbBatDauChoi: .asciiz "Bat dau choi"
+	tbKhoiTaoLai: .asciiz "Khoi tao lai"
+	tbTroChoiKetThuc: .asciiz "Da thi het tat ca cac de. Tro choi ket thuc\n"
+	tbCoMuonChoiTiep: .asciiz "Ban co muon choi tiep hay ko?\n0.Khong\n1.Co\nLua chon: "
+	fin: .asciiz "input.txt"
+	soDeThi: .word 0
+	doDaiDeThi: .word 0
+	soDeDaThi: .word 0 # So luong de da lam
+	cacDeThi: .space 30
+	dethi: .space 30
+	mangDeDaThi: .space 1000 # Mang luu nhung de da thi
+.text
+
+main:
+	# Khoi tao mangDeDaThi toan phan tu 0
+	la $a0, mangDeDaThi
+	li $a1, 1000
+	jal _KhoiTaoMang
+	lw $0, doDaiDeThi
+
+	# Doc file de thi, luu nhung gi trong file vao bien cacDeThi, luu so de thi vao bien soDeThi
+	jal _DocFileDeThi
+
+main.TroChoiBatDau:
+	# Kiem tra xem da co de thi chua, neu co thi khoi tao lai
+	lb $t0, dethi
+	bne $t0, $0, main.KhoiTaoLai
+
+main.GoGo:
+	# Lay de thi ngau nhien
+	la $a0, mangDeDaThi
+	jal _LayDeThiNgauNhien
+
+	# Xuat mang de da thi, so de da thi, de thi
+	li $a0, 250
+	la $a1, mangDeDaThi
+	jal _XuatMang
+
+	addi $a1, $a1, 8
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	li $v0, 1
+	lw $a0, soDeDaThi
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	li $v0, 4
+	la $a0, dethi
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+
+	#Hoi nguoi choi co muon choi tiep hay ko
+	li $v0, 4
+	la $a0, tbCoMuonChoiTiep
+	syscall
+	
+	li $v0, 5
+	syscall
+
+	# Neu nhap vao 0 -> thoat chuong trinh
+	beq $v0, $0, main.ThoatChuongTrinh
+	j main.TroChoiBatDau
+
+main.ThoatChuongTrinh:
+	li $v0, 10
+	syscall
+
+main.KhoiTaoLai:
+	# Khoi tao lai mang de thi va doDaiDeThi	
+	la $a0, dethi
+	li $a1, 30
+	jal _KhoiTaoMang
+	sw $0, doDaiDeThi
+	j main.GoGo
+	
+	
+
+#========= Khoi tao mang (mang) ===========#
+_KhoiTaoMang: # Khoi tao 250 phan tu trong mang = 0
+#=== Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+#=== Than ham
+	li $t0, 0
+	move $s0, $a0 # Chuyen mang vao s0
+	move $s1, $a1
+
+_KhoiTaoMang.Lap:
+	sb $0, ($s0)
+	addi $t0, $t0, 1
+	slt $t1, $t0, $s1
+	beq $t1, 1, _KhoiTaoMang.Lap
+
+	
+
+#=== Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	addi $sp, $sp, 64
+	jr $ra
+#======================= Xuat mang (mang) ===========================================#
+_XuatMang:
+
+#Dau mang
+	addi $sp, $sp, -32
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $t0, 12($sp)
+	sw $t1, 16($sp)	
+
+	move $s0, $a0
+	move $s1, $a1
+
+#Than mang
+	li $t0, 0
+XuatMang.Loop:
+	li $v0, 1
+	lw $a0, ($s1)
+	syscall
+
+	li $v0, 11
+	li $a0, ' '
+	syscall
+
+	addi $s1, $s1, 4
+	addi $t0, $t0, 1
+	slt $t1, $t0, $s0
+	beq $t1, 1, XuatMang.Loop
+
+#Cuoi mang
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $t0, 12($sp)
+	lw $t1, 16($sp)
+	addi $sp, $sp, 32
+	jr $ra
+
+#======== Ham doc file, lay so de thi ========================#
+_DocFileDeThi:
+#=====Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+#===== Than ham
+	#openfile
+	li $v0, 13
+	la $a0, fin
+	li $a1, 0 # Mo de doc
+	li $a2, 0
+	syscall
+
+	#Sau khi open, $v0 chua file descriptor 
+
+	#Luu dia chi file ds vao $s0
+	move $s0, $v0 
+
+	#Read file
+	li $v0, 14
+	move $a0, $s0
+	la $a1, cacDeThi
+	li $a2, 30
+	syscall
+
+	# s2 = so ki tu trong file
+	move $s2, $v0
+
+	#Dem so tu trong de thi, luu vao $s0
+	li $s0, 1 # Bien luu ket qua so tu
+	li $t0, 0 # Bien dem
+	la $s1, cacDeThi
+	li $t1, '*'
+
+DemSoTu:
+	lb $t2, ($s1) # $t2 luu ket qua hien tai
+	addi $s1, $s1, 1
+	addi $t0, $t0, 1
+	
+	# Neu ki tu = '\n'
+	bne $t2, $t1, DemSoTu.Test
+	addi $s0, $s0, 1 # Neu la ki tu '*', tang so tu len 1 	
+
+DemSoTu.Test:
+	# Kiem tra xem load het mang chua
+	slt $t3, $t0, $s2
+	beq $t3, 1, DemSoTu
+
+	sw $s0, soDeThi
+
+#===== Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
+#=================== Ham lay de thi ngau nhien ======================================#
+_LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do dai de thi vao $v1, luu so de thi vao $v2
+#=====Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 40($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+
+#=====Than ham
+	#Kiem tra xem da thi het 250 de hay chua, neu co thi ket thuc luon
+	lw $s0, soDeDaThi
+	lw $s1, soDeThi
+	slt $t0, $s0, $s1
+	beq $t0, 0, LayDeThi.ThiHetRoi 
+
+
+
+TaoSoNgauNhienMoi:
+	# Tao so ngau nhien luu vao $a0
+	li $v0, 42
+	lw $a1, soDeThi
+	syscall 
+
+	# s0 la so ngau nhien
+	move $s0, $a0
+	addi $s0, $s0, 1
+
+	# In so ngau nhien
+	li $v0, 4
+	la $a0, inSoNgauNhien
+	syscall
+
+	li $v0, 1
+	move $a0, $s0
+	syscall 
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	la $s4, mangDeDaThi
+
+	# Kiem tra xem so ngau nhien do co bi trung vs cac de da thi hay ko
+TaoSoNgauNhien.Trung:
+	lw $t1, ($s4)
+
+	li $v0, 4
+	la $a0, inPhanTuHienTai
+	syscall
+
+	li $v0, 1
+	move $a0, $t1
+	syscall 
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	beq $t1, $0, TaoSoNgauNhien.ThemSoVaoMang
+	beq $t1, $s0, TaoSoNgauNhienMoi
+	addi $s4, $s4, 4
+	j TaoSoNgauNhien.Trung
+
+
+
+TaoSoNgauNhien.ThemSoVaoMang:
+	sw $s0, ($s4)
+	lw $s2, soDeDaThi
+	addi $s2, $s2, 1
+	sw $s2, soDeDaThi
+
+	
+#=== Lay de thi ====#
+	# s0 la so ngau nhien + 1
+	li $t0, 1
+	la $s1, cacDeThi
+	la $s2, dethi
+	li $s3, 0
+	la $t2, '*'
+	la $t3, '\0'
+LayDeThi.loop:
+	beq $t0, $s0, LayDeThi.LayTu # Neu i = n -> bat dau lay tu
+	lb $t1, ($s1) #Lay tung ki tu so sanh vs *
+	addi $s1, $s1, 1
+	bne $t1, $t2, LayDeThi.loop
+	addi $t0, $t0, 1
+	j LayDeThi.loop
+
+LayDeThi.LayTu:
+	lb $t1, ($s1)
+	beq $t1, $t2, LayDeThi.KetThuc # Neu = '\n' hoac = '\0' -> ket thuc
+	beqz $t1, LayDeThi.KetThuc
+	sb $t1, ($s2) # Neu la ki tu binh thuong thi luu vao mang moi
+
+	addi $s1, $s1, 1 #Tang cac bien dem, str
+	addi $s2, $s2, 1
+	addi $s3, $s3, 1
+
+	j LayDeThi.LayTu
+
+LayDeThi.KetThuc:
+	# Luu do dai de thi vao s3, luu de thi vao s2 
+	li $s2, 0
+	move $v0, $s3
+	sw $s3, doDaiDeThi
+
+#===== Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $s5, 40($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
+LayDeThi.ThiHetRoi:
+	li $v0, 4
+	la $a0, tbTroChoiKetThuc
+	syscall
+
+	li $v0, 10
+	syscall
+
+#==================== Ham gi do ===================================#
+	
+
+
+	
+	
