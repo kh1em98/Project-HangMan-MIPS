@@ -2,6 +2,7 @@
 	# Gia su co toi da 250 de thi
 	inStop : .asciiz "Ham dung o day"
 	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
+	inPhanTuSau: .asciiz "Phan tu sau la : "
 	inSoNgauNhien: .asciiz "So ngau nhien la : "
 	tbBatDauChoi: .asciiz "Bat dau choi"
 	tbKhoiTaoLai: .asciiz "Khoi tao lai"
@@ -63,6 +64,13 @@ main.GoGo:
 	li $a0, '\n'
 	syscall
 
+	li $v0, 1
+	lw $a0, doDaiDeThi
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
 
 	#Hoi nguoi choi co muon choi tiep hay ko
 	li $v0, 4
@@ -112,10 +120,9 @@ _KhoiTaoMang: # Khoi tao 250 phan tu trong mang = 0
 _KhoiTaoMang.Lap:
 	sb $0, ($s0)
 	addi $t0, $t0, 1
+	addi $s0, $s0, 1
 	slt $t1, $t0, $s1
 	beq $t1, 1, _KhoiTaoMang.Lap
-
-	
 
 #=== Cuoi ham
 	lw $ra, ($sp)
@@ -277,37 +284,10 @@ TaoSoNgauNhienMoi:
 	move $s0, $a0
 	addi $s0, $s0, 1
 
-	# In so ngau nhien
-	li $v0, 4
-	la $a0, inSoNgauNhien
-	syscall
-
-	li $v0, 1
-	move $a0, $s0
-	syscall 
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
 	la $s4, mangDeDaThi
-
 	# Kiem tra xem so ngau nhien do co bi trung vs cac de da thi hay ko
 TaoSoNgauNhien.Trung:
 	lw $t1, ($s4)
-
-	li $v0, 4
-	la $a0, inPhanTuHienTai
-	syscall
-
-	li $v0, 1
-	move $a0, $t1
-	syscall 
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
 	beq $t1, $0, TaoSoNgauNhien.ThemSoVaoMang
 	beq $t1, $s0, TaoSoNgauNhienMoi
 	addi $s4, $s4, 4
@@ -317,6 +297,8 @@ TaoSoNgauNhien.Trung:
 
 TaoSoNgauNhien.ThemSoVaoMang:
 	sw $s0, ($s4)
+
+	#Tang so de da thi them 1
 	lw $s2, soDeDaThi
 	addi $s2, $s2, 1
 	sw $s2, soDeDaThi
@@ -340,7 +322,21 @@ LayDeThi.loop:
 
 LayDeThi.LayTu:
 	lb $t1, ($s1)
-	beq $t1, $t2, LayDeThi.KetThuc # Neu = '\n' hoac = '\0' -> ket thuc
+
+	li $v0, 4
+	la $a0, inPhanTuHienTai
+	syscall
+
+	li $v0, 4
+	move $a0, $s2
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+
+	beq $t1, $t2, LayDeThi.KetThuc # Neu = '*' hoac = '\0' -> ket thuc
 	beqz $t1, LayDeThi.KetThuc
 	sb $t1, ($s2) # Neu la ki tu binh thuong thi luu vao mang moi
 
@@ -348,12 +344,22 @@ LayDeThi.LayTu:
 	addi $s2, $s2, 1
 	addi $s3, $s3, 1
 
+	li $v0, 4
+	la $a0, inPhanTuSau
+	syscall
+
+	li $v0, 4
+	move $a0, $s2
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
 	j LayDeThi.LayTu
 
 LayDeThi.KetThuc:
 	# Luu do dai de thi vao s3, luu de thi vao s2 
-	li $s2, 0
-	move $v0, $s3
 	sw $s3, doDaiDeThi
 
 #===== Cuoi ham
