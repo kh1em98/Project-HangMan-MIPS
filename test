@@ -1,5 +1,8 @@
 .data
 	# Gia su co toi da 250 de thi
+	tbNhapTen: .asciiz "Nhap ten : "
+	tbTenKhongHopLe: .asciiz "Ten khong hop le\n"
+	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
 	inStop : .asciiz "Ham dung o day"
 	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
 	inPhanTuSau: .asciiz "Phan tu sau la : "
@@ -15,6 +18,7 @@
 	cacDeThi: .space 30
 	dethi: .space 30
 	mangDeDaThi: .space 1000 # Mang luu nhung de da thi
+	tenNguoiChoi: .space 10
 .text
 
 main:
@@ -26,6 +30,9 @@ main:
 
 	# Doc file de thi, luu nhung gi trong file vao bien cacDeThi, luu so de thi vao bien soDeThi
 	jal _DocFileDeThi
+
+	# Lay ten nguoi choi
+	jal _NhapTen
 
 main.TroChoiBatDau:
 	# Kiem tra xem da co de thi chua, neu co thi khoi tao lai
@@ -97,8 +104,7 @@ main.KhoiTaoLai:
 	j main.GoGo
 	
 	
-
-#========= Khoi tao mang (mang) ===========#
+#========= Khoi tao mang (mang, so ki tu) ===========#
 _KhoiTaoMang: # Khoi tao 250 phan tu trong mang = 0
 #=== Dau ham
 	addi $sp, $sp, -64
@@ -137,6 +143,105 @@ _KhoiTaoMang.Lap:
 	lw $t3, 32($sp)
 	addi $sp, $sp, 64
 	jr $ra
+
+#======================= Ham nhap ten ==================================#
+_NhapTen:
+	# Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	# Than ham
+	_NhapTen.ThucHien: # Thuc hien viec nhap ten vao may tinh
+	li $v0, 4
+	la $a0, tbNhapTen
+	syscall
+
+	li $v0, 8
+	la $a0, tenNguoiChoi
+	li $a1, 10
+	syscall
+
+	la $s0, tenNguoiChoi
+	li $t3, 0
+
+	_NhapTen.KiemTra.Lap: # Kiem tra ten co hop le hay khong
+	lb $t0, ($s0)
+	
+	# a[i] < 48 '0'
+	blt $t0, '0', _NhapTen.KhongHopLe
+	
+	# a[i] > 57 '9'
+	bgt $t0, '9',  _KiemTra.ChuHoa
+	j _ChuCai.HopLe
+
+	_KiemTra.ChuHoa:
+	# a[i] < 65 'A'
+	blt $t0, 'A', _NhapTen.KhongHopLe
+	
+	# a[i] > 90
+	bgt $t0, 'Z',  _KiemTra.ChuThuong
+	j _ChuCai.HopLe
+
+	_KiemTra.ChuThuong:
+	# a[i] < 97 'a'
+	blt $t0, 'a', _NhapTen.KhongHopLe
+
+	# a[i] > 122 'z'
+	bgt $t0, 'z',  _NhapTen.KhongHopLe
+	j _ChuCai.HopLe
+
+
+	_ChuCai.HopLe: # Neu chu cai hop le
+	li $t3, '\n'
+	addi $s0, $s0, 1
+	lb $t2, ($s0)
+	beq $t2, $t3, _NhapTen.HopLe
+	j _NhapTen.KiemTra.Lap
+
+	_NhapTen.HopLe: # Ket thuc phan nhap ten, in ten nguoi nhap
+	li $v0, 4
+	la $a0, inTenNguoiChoi
+	syscall
+
+	li $v0, 4
+	la $a0, tenNguoiChoi
+	syscall
+
+
+	# Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
+	_NhapTen.KhongHopLe:
+	li $v0, 4
+	la $a0, tbTenKhongHopLe
+	syscall
+
+	la $a0, tenNguoiChoi
+	li $a1, 10
+	jal _KhoiTaoMang
+
+	j _NhapTen.ThucHien
+	
+
 #======================= Xuat mang (mang) ===========================================#
 _XuatMang:
 
@@ -323,19 +428,6 @@ LayDeThi.loop:
 LayDeThi.LayTu:
 	lb $t1, ($s1)
 
-	li $v0, 4
-	la $a0, inPhanTuHienTai
-	syscall
-
-	li $v0, 4
-	move $a0, $s2
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-
 	beq $t1, $t2, LayDeThi.KetThuc # Neu = '*' hoac = '\0' -> ket thuc
 	beqz $t1, LayDeThi.KetThuc
 	sb $t1, ($s2) # Neu la ki tu binh thuong thi luu vao mang moi
@@ -343,18 +435,6 @@ LayDeThi.LayTu:
 	addi $s1, $s1, 1 #Tang cac bien dem, str
 	addi $s2, $s2, 1
 	addi $s3, $s3, 1
-
-	li $v0, 4
-	la $a0, inPhanTuSau
-	syscall
-
-	li $v0, 4
-	move $a0, $s2
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
 
 	j LayDeThi.LayTu
 
