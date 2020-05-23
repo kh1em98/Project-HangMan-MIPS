@@ -1,5 +1,12 @@
 .data
 	# Gia su co toi da 250 de thi
+	inOChu: .asciiz "Ket qua cua chuong trinh : "
+	tbDoanDungOChu: .asciiz "Chuc mung ban da gianh chien thang \n"
+	tbDoanSaiOChu: .asciiz "Ban da doan sai. Tro choi ket thuc\n"
+	tbNhapKiTuDuDoan: .asciiz "Nhap ki tu du doan : "
+	tbNhapOChuDuDoan: .asciiz "Nhap o chu du doan : "
+	tbThucHienDoan: .asciiz "Chon kieu du doan\n1.Doan ki tu\n2.Doan o chu\nLua chon: "
+	tbOChuDuDoan: .asciiz "O chu cua chuong trinh hom nay la : "
 	tbNhapTen: .asciiz "Nhap ten : "
 	tbTenKhongHopLe: .asciiz "Ten khong hop le\n"
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
@@ -15,10 +22,14 @@
 	soDeThi: .word 0
 	doDaiDeThi: .word 0
 	soDeDaThi: .word 0 # So luong de da lam
+	soLanSai: .word 0
 	cacDeThi: .space 30
 	dethi: .space 30
 	mangDeDaThi: .space 1000 # Mang luu nhung de da thi
 	tenNguoiChoi: .space 10
+	oChuChuongTrinh: .space 30
+	doanCaOChu: .space 30
+	oChuTamThoi: .space 30
 .text
 
 main:
@@ -43,6 +54,17 @@ main.GoGo:
 	# Lay de thi ngau nhien
 	la $a0, mangDeDaThi
 	jal _LayDeThiNgauNhien
+
+	# Khoi tao o chu du doan
+	la $a0, oChuChuongTrinh
+	jal _KhoiTaoOChuDuDoan
+
+	# Show o chu du doan
+	la $a0, oChuChuongTrinh
+	jal _ShowOChuDuDoan 
+
+	# Thuc hien du doan
+	jal _ThucHienDuDoan
 
 	# Xuat mang de da thi, so de da thi, de thi
 	li $a0, 250
@@ -103,7 +125,296 @@ main.KhoiTaoLai:
 	sw $0, doDaiDeThi
 	j main.GoGo
 	
+#======= Thuc hien du doan ========#
+_ThucHienDuDoan:
+	#=== Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	#=== Than ham
+	li $v0, 4
+	la $a0, tbThucHienDoan
+	syscall
+
+	li $v0, 5
+	syscall
+
+	#Luu lua chon vao $s0
+	move $s0, $v0
+	li $t0, 1	
+
+	# Neu s0 = 1 -> doan ki tu, con khong thi doan o chu
+	beq $s0, $t0, _ThucHien.DoanKiTu
+
+	#=== Doan ca o chu ===#
+	_ThucHien.DoanOChu:
+	# Nhap o chu du doan
+	li $v0, 4
+	la $a0, tbNhapOChuDuDoan
+	syscall
+
+	li $v0, 8
+	la $a0, doanCaOChu
+	li $a1, 30
+	syscall
+
+	# kiem tra xem du doan dung ko
+	li $t0, 0 # Bien dem
+	li $t1, 0 # Luu ket qua kiem tra
+	lw $s2, doDaiDeThi
+	la $s0, doanCaOChu
+	la $s1, dethi
 	
+	DoanOChu.Lap:
+	bge $t0, $s2, _DuDoanOChu.Thang
+	lb $t2, ($s0)
+	lb $t3, ($s1)
+	addi $t0, $t0, 1
+	addi $s0, $s0, 1
+	addi $s1, $s1, 1
+	bne $t2, $t3, _DuDoanOChu.Thua
+	j DoanOChu.Lap
+
+	_DuDoanOChu.Thua:
+
+	li $v0, 4
+	la $a0, inOChu
+	syscall
+
+	li $v0, 4
+	la $a0, dethi
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	li $v0, 4
+	la $a0, tbDoanSaiOChu
+	syscall
+	j _DuDoan.CuoiHam
+
+	_DuDoanOChu.Thang:
+	li $v0, 4
+	la $a0, tbDoanDungOChu
+	syscall
+	j _DuDoan.CuoiHam
+
+	#===== Ket thuc phan du doan ca o chu ====#
+
+	#== Thuc hien doan tung ki tu ==#
+	_ThucHien.DoanKiTu:
+
+	# Reset lai o chu tam thoi
+	la $a0, oChuTamThoi
+	li $a1, 30
+	jal _KhoiTaoMang
+	
+	# Kiem tra trong de thi co ki tu nay khong
+	li $t0, 0 # Bien dem lap ki tu
+	li $t1, 0 # Luu so lan doan sai
+	li $t2, 0 # Bien dem kiem tra ki tu
+	lw $s0, doDaiDeThi
+	la $s1, dethi
+	li $s4, 0
+
+	la $a0, oChuTamThoi
+	jal _KhoiTaoOChuDuDoan
+	la $s2, oChuTamThoi
+
+	_DoanKiTu.LapNhapKiTu:
+	
+
+		beq $s4, 1, DoanDungKiTu
+		addi $t1, $t1, 1
+		bge $t1, 7, ThuaCuoc
+
+		DoanDungKiTu:
+		
+		la $a0, oChuTamThoi
+		jal _ShowOChuDuDoan
+
+		li $s4, 0 # Luu ket qua cua viec kiem tra
+		li $t2, 0
+		li $v0, 4 
+		la $a0, tbNhapKiTuDuDoan
+		syscall
+
+		li $v0, 12
+		syscall
+		# Luu ki tu du doan vao $s3
+		move $s3, $v0
+		la $s2, oChuTamThoi
+		_DoanKiTu.KiemTraKiTu:
+			# Kiem tra xem da kiem tra xong chua
+			addi $t2, $t2, 1
+			bgt $t2, $s0, _DoanKiTu.LapNhapKiTu
+
+			lb $t3, ($s1)  # Luu dethi[i] vao $t3
+			beq $s3, $t3, TrungNhau
+			addi $s1, $s1, 1
+			addi $s2, $s2, 1
+			j _DoanKiTu.KiemTraKiTu
+
+			TrungNhau:
+			sb $s3, ($s2)
+			addi $s1, $s1, 1
+			addi $s2, $s2, 1
+			li $s4, 1
+			j _DoanKiTu.KiemTraKiTu
+
+	ThuaCuoc:
+		li $v0, 4
+		la $a0, inOChu
+		syscall
+
+		li $v0, 4
+		la $a0, dethi
+		syscall
+
+		li $v0, 11
+		li $a0, '\n'
+		syscall
+
+		li $v0, 4
+		la $a0, tbDoanSaiOChu
+		syscall
+
+_DuDoan.CuoiHam:
+	#=== Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	lw $t4, 40($sp)
+	lw $t5, 44($sp)
+	lw $t6, 48($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
+
+	
+
+
+
+#====== Khoi tao o chu du doan ******** =======#	
+_KhoiTaoOChuDuDoan:
+	#=== Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+
+	#=== Than ham
+	li $t0, 0 # Bien dem
+	lw $t1, doDaiDeThi
+	li $t2, '*'
+	move $s1, $a0
+
+	_KhoiTaoOChu.lap:
+	sb $t2, ($s1)
+	addi $t0, $t0, 1
+	addi $s1, $s1, 1
+	blt $t0, $t1, _KhoiTaoOChu.lap
+
+	#=== Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
+#===== Show o chu du doan ====== #
+_ShowOChuDuDoan:
+#=== Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+
+	move $s1, $a0
+
+	#=== Than ham
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	li $t0, 0 # Bien dem
+	lw $t1, doDaiDeThi
+
+
+	li $v0, 4
+	la $a0, tbOChuDuDoan
+	syscall
+
+	_ShowOChu.lap:
+	lb $t2, ($s1)
+	
+	li $v0, 11
+	move $a0, $t2
+	syscall
+
+	addi $t0, $t0, 1
+	addi $s1, $s1, 1
+	blt $t0, $t1, _ShowOChu.lap
+	
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	
+	#=== Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
 #========= Khoi tao mang (mang, so ki tu) ===========#
 _KhoiTaoMang: # Khoi tao 250 phan tu trong mang = 0
 #=== Dau ham
