@@ -59,47 +59,9 @@ main.GoGo:
 	la $a0, oChuChuongTrinh
 	jal _KhoiTaoOChuDuDoan
 
-	# Show o chu du doan
-	la $a0, oChuChuongTrinh
-	jal _ShowOChuDuDoan 
 
 	# Thuc hien du doan
 	jal _ThucHienDuDoan
-
-	# Xuat mang de da thi, so de da thi, de thi
-	li $a0, 250
-	la $a1, mangDeDaThi
-	jal _XuatMang
-
-	addi $a1, $a1, 8
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-	li $v0, 1
-	lw $a0, soDeDaThi
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-	li $v0, 4
-	la $a0, dethi
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-	li $v0, 1
-	lw $a0, doDaiDeThi
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
 
 	#Hoi nguoi choi co muon choi tiep hay ko
 	li $v0, 4
@@ -135,6 +97,7 @@ _ThucHienDuDoan:
 	sw $s2, 12($sp)
 	sw $s3, 16($sp)
 	sw $s4, 36($sp)
+	sw $s5, 52($sp)
 	sw $t0, 20($sp)
 	sw $t1, 24($sp)
 	sw $t2, 28($sp)
@@ -142,8 +105,29 @@ _ThucHienDuDoan:
 	sw $t4, 40($sp)
 	sw $t5, 44($sp)
 	sw $t6, 48($sp)
-
+	
 	#=== Than ham
+	# Khoi tao cac bien de thuc hien doan tung ki tu
+	li $t1, 0 # Luu so lan doan sai
+	lw $t5, doDaiDeThi # Luu do dai de thi
+	li $s5, 0 # So ki tu doan dung
+
+	la $a0, oChuTamThoi # Khoi tao mang o chu tam thoi moi
+	li $a1, 30
+	jal _KhoiTaoMang
+
+	la $a0, oChuTamThoi # Khoi tao o chu du doan bang cach them cac dau *
+	jal _KhoiTaoOChuDuDoan
+	
+
+	ChonCachDoan:
+	la $a0, oChuTamThoi
+	jal _ShowOChuDuDoan
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
 	li $v0, 4
 	la $a0, tbThucHienDoan
 	syscall
@@ -187,7 +171,10 @@ _ThucHienDuDoan:
 	bne $t2, $t3, _DuDoanOChu.Thua
 	j DoanOChu.Lap
 
-	_DuDoanOChu.Thua:
+	_DuDoanOChu.Thua: # Thua cuoc. Tro choi ket thuc
+	li $v0, 11
+	li $a0, '\n'
+	syscall
 
 	li $v0, 4
 	la $a0, inOChu
@@ -206,48 +193,45 @@ _ThucHienDuDoan:
 	syscall
 	j _DuDoan.CuoiHam
 
-	_DuDoanOChu.Thang:
+	_DuDoanOChu.Thang: # Du doan dung toan bo o chu. Chien thang tro choi
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
 	li $v0, 4
 	la $a0, tbDoanDungOChu
 	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+
 	j _DuDoan.CuoiHam
 
 	#===== Ket thuc phan du doan ca o chu ====#
 
 	#== Thuc hien doan tung ki tu ==#
 	_ThucHien.DoanKiTu:
-
-	# Reset lai o chu tam thoi
-	la $a0, oChuTamThoi
-	li $a1, 30
-	jal _KhoiTaoMang
-	
 	# Kiem tra trong de thi co ki tu nay khong
 	li $t0, 0 # Bien dem lap ki tu
-	li $t1, 0 # Luu so lan doan sai
 	li $t2, 0 # Bien dem kiem tra ki tu
-	lw $s0, doDaiDeThi
 	la $s1, dethi
 	li $s4, 0
-
-	la $a0, oChuTamThoi
-	jal _KhoiTaoOChuDuDoan
 	la $s2, oChuTamThoi
 
 	_DoanKiTu.LapNhapKiTu:
-	
+		beq $s4, 1, _DoanKiTu.NhapKiTu # Neu ki tu doan dung, thi nhap ki tu tiep
+		addi $t1, $t1, 1    # Neu ki tu doan sai, tang so lan sai them 1
+		bgt $t1, 7, ThuaCuoc # Neu sai qua 7 lan -> thua cuoc
 
-		beq $s4, 1, DoanDungKiTu
-		addi $t1, $t1, 1
-		bge $t1, 7, ThuaCuoc
-
-		DoanDungKiTu:
-		
-		la $a0, oChuTamThoi
-		jal _ShowOChuDuDoan
-
+		_DoanKiTu.NhapKiTu:
 		li $s4, 0 # Luu ket qua cua viec kiem tra
-		li $t2, 0
+		li $t2, 0 # Bien dem cua kiem tra ki tu
+
 		li $v0, 4 
 		la $a0, tbNhapKiTuDuDoan
 		syscall
@@ -257,25 +241,38 @@ _ThucHienDuDoan:
 		# Luu ki tu du doan vao $s3
 		move $s3, $v0
 		la $s2, oChuTamThoi
+		la $s1, dethi
 		_DoanKiTu.KiemTraKiTu:
 			# Kiem tra xem da kiem tra xong chua
 			addi $t2, $t2, 1
-			bgt $t2, $s0, _DoanKiTu.LapNhapKiTu
+			bgt $t2, $t5, ChonCachDoan
 
 			lb $t3, ($s1)  # Luu dethi[i] vao $t3
-			beq $s3, $t3, TrungNhau
+
+			beq $s3, $t3, KiTuDung
 			addi $s1, $s1, 1
 			addi $s2, $s2, 1
 			j _DoanKiTu.KiemTraKiTu
 
-			TrungNhau:
+			KiTuDung:
+			lb $t4, ($s2)
+			bne $t4, '*', KiTuDung.Continue
+			# Neu bang dau *, thi moi luu vao de thi, va tang so luong ki tu doan dung
 			sb $s3, ($s2)
+			addi $s5, $s5, 1 # +1 so ki tu dung
+			beq $s5, $t5, _DuDoanOChu.Thang # Neu so tu doan dung = do dai de thi -> thang
+
+			KiTuDung.Continue:
+			li $s4, 1 # Cho biet ki tu nay da dung
 			addi $s1, $s1, 1
 			addi $s2, $s2, 1
-			li $s4, 1
 			j _DoanKiTu.KiemTraKiTu
 
 	ThuaCuoc:
+		li $v0, 11
+		li $a0, '\n'
+		syscall
+
 		li $v0, 4
 		la $a0, inOChu
 		syscall
@@ -300,6 +297,7 @@ _DuDoan.CuoiHam:
 	lw $s2, 12($sp)
 	lw $s3, 16($sp)
 	lw $s4, 36($sp)
+	lw $s5, 52($sp)
 	lw $t0, 20($sp)
 	lw $t1, 24($sp)
 	lw $t2, 28($sp)
@@ -310,9 +308,7 @@ _DuDoan.CuoiHam:
 	addi $sp, $sp, 64
 	jr $ra
 
-
 	
-
 
 
 #====== Khoi tao o chu du doan ******** =======#	
