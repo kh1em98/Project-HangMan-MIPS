@@ -1,5 +1,12 @@
 .data
-	# Gia su co toi da 250 de thi
+	# Cac trang thai treo co
+	tt1: .asciiz "______\n|/   |\n|\n|\n|\n|\n"
+	tt2: .asciiz "______\n|/   |\n|    0\n|\n|\n|\n"
+	tt3: .asciiz "______\n|/   |\n|    0\n|    |\n|\n|\n"
+	tt4: .asciiz "______\n|/   |\n|    0\n|   /|\n|\n|\n"
+	tt5: .asciiz "______\n|/   |\n|    0\n|   /|\\\n|\n|\n"
+	tt6: .asciiz "______\n|/   |\n|    0\n|   /|\\\n|   /\n|\n"
+	tt7: .asciiz "______\n|/   |\n|    0\n|   /|\\\n|   / \\\n|\n"
 	inOChu: .asciiz "Ket qua cua chuong trinh : "
 	tbDoanDungOChu: .asciiz "Chuc mung ban da gianh chien thang \n"
 	tbDoanSaiOChu: .asciiz "Ban da doan sai. Tro choi ket thuc\n"
@@ -9,6 +16,7 @@
 	tbOChuDuDoan: .asciiz "O chu cua chuong trinh hom nay la : "
 	tbNhapTen: .asciiz "Nhap ten : "
 	tbTenKhongHopLe: .asciiz "Ten khong hop le\n"
+	inDiem: .asciiz "Diem cua nguoi choi la "
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
 	inStop : .asciiz "Ham dung o day"
 	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
@@ -23,6 +31,7 @@
 	doDaiDeThi: .word 0
 	soDeDaThi: .word 0 # So luong de da lam
 	soLanSai: .word 0
+	diem: .word 0
 	cacDeThi: .space 30
 	dethi: .space 30
 	mangDeDaThi: .space 1000 # Mang luu nhung de da thi
@@ -63,6 +72,18 @@ main.GoGo:
 	# Thuc hien du doan
 	jal _ThucHienDuDoan
 
+	# Thong bao diem cho nguoi choi
+	li $v0, 4
+	la $a0, inDiem
+	syscall
+
+	li $v0, 1
+	lw $a0, diem
+	syscall
+
+	li $v0, 11
+	li $a0, '\n'
+	syscall
 	#Hoi nguoi choi co muon choi tiep hay ko
 	li $v0, 4
 	la $a0, tbCoMuonChoiTiep
@@ -87,6 +108,142 @@ main.KhoiTaoLai:
 	sw $0, doDaiDeThi
 	j main.GoGo
 	
+#======= Show trang thai(int number) =======#
+_ShowTrangThai:
+	#Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+	move $s0, $a0
+	#Than ham
+	beq $s0, 1, _ShowTrangThai.0
+	beq $s0, 2, _ShowTrangThai.1
+	beq $s0, 3, _ShowTrangThai.2
+	beq $s0, 4, _ShowTrangThai.3
+	beq $s0, 5, _ShowTrangThai.4
+	beq $s0, 6, _ShowTrangThai.5
+	beq $s0, 7, _ShowTrangThai.6
+	beq $s0, 8, _ShowTrangThai.7
+
+	_ShowTrangThai.0:
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.1:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt1
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.2:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt2
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.3:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt3
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.4:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt4
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.5:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt5
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.6:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt6
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	j _ShowTrangThai.End
+
+	_ShowTrangThai.7:
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	li $v0, 4,
+	la $a0, tt7
+	syscall
+	li $v0, 11
+	li $a0, '\n'
+	syscall 
+	j _ShowTrangThai.End
+
+
+	_ShowTrangThai.End:
+	#Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $s5, 52($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	lw $t4, 40($sp)
+	lw $t5, 44($sp)
+	lw $t6, 48($sp)
+	addi $sp, $sp, 64
+	jr $ra
+
 #======= Thuc hien du doan ========#
 _ThucHienDuDoan:
 	#=== Dau ham
@@ -111,6 +268,7 @@ _ThucHienDuDoan:
 	li $t1, 0 # Luu so lan doan sai
 	lw $t5, doDaiDeThi # Luu do dai de thi
 	li $s5, 0 # So ki tu doan dung
+	li $s4, 0 # Kiem tra xem ki tu truoc doan co dung ko
 
 	la $a0, oChuTamThoi # Khoi tao mang o chu tam thoi moi
 	li $a1, 30
@@ -121,9 +279,19 @@ _ThucHienDuDoan:
 	
 
 	ChonCachDoan:
+	beq $s4, 1, ChonCachDoan.continue # Neu ki tu doan dung, thi nhap ki tu tiep
+	addi $t1, $t1, 1    # Neu ki tu doan sai, tang so lan sai them 1	
+
+	bgt $t1, 7, ThuaCuoc # Neu sai qua 7 lan -> thua cuoc
+	
+	# Show trang thai neu doan sai
+	move $a0, $t1
+	jal _ShowTrangThai
+	
+	ChonCachDoan.continue:
 	la $a0, oChuTamThoi
 	jal _ShowOChuDuDoan
-
+	
 	li $v0, 11
 	li $a0, '\n'
 	syscall
@@ -136,11 +304,10 @@ _ThucHienDuDoan:
 	syscall
 
 	#Luu lua chon vao $s0
-	move $s0, $v0
-	li $t0, 1	
+	move $s0, $v0	
 
 	# Neu s0 = 1 -> doan ki tu, con khong thi doan o chu
-	beq $s0, $t0, _ThucHien.DoanKiTu
+	beq $s0, 1, _ThucHien.DoanKiTu
 
 	#=== Doan ca o chu ===#
 	_ThucHien.DoanOChu:
@@ -168,32 +335,15 @@ _ThucHienDuDoan:
 	addi $t0, $t0, 1
 	addi $s0, $s0, 1
 	addi $s1, $s1, 1
-	bne $t2, $t3, _DuDoanOChu.Thua
+	bne $t2, $t3, ThuaCuoc
 	j DoanOChu.Lap
 
-	_DuDoanOChu.Thua: # Thua cuoc. Tro choi ket thuc
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-	li $v0, 4
-	la $a0, inOChu
-	syscall
-
-	li $v0, 4
-	la $a0, dethi
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-	li $v0, 4
-	la $a0, tbDoanSaiOChu
-	syscall
-	j _DuDoan.CuoiHam
-
 	_DuDoanOChu.Thang: # Du doan dung toan bo o chu. Chien thang tro choi
+
+	lw $t6, diem
+	add $t6, $t6, $s2
+	sw $t6, diem
+
 	li $v0, 11
 	li $a0, '\n'
 	syscall
@@ -224,10 +374,6 @@ _ThucHienDuDoan:
 	la $s2, oChuTamThoi
 
 	_DoanKiTu.LapNhapKiTu:
-		beq $s4, 1, _DoanKiTu.NhapKiTu # Neu ki tu doan dung, thi nhap ki tu tiep
-		addi $t1, $t1, 1    # Neu ki tu doan sai, tang so lan sai them 1
-		bgt $t1, 7, ThuaCuoc # Neu sai qua 7 lan -> thua cuoc
-
 		_DoanKiTu.NhapKiTu:
 		li $s4, 0 # Luu ket qua cua viec kiem tra
 		li $t2, 0 # Bien dem cua kiem tra ki tu
@@ -269,21 +415,8 @@ _ThucHienDuDoan:
 			j _DoanKiTu.KiemTraKiTu
 
 	ThuaCuoc:
-		li $v0, 11
-		li $a0, '\n'
-		syscall
-
-		li $v0, 4
-		la $a0, inOChu
-		syscall
-
-		li $v0, 4
-		la $a0, dethi
-		syscall
-
-		li $v0, 11
-		li $a0, '\n'
-		syscall
+		li $a0, 8
+		jal _ShowTrangThai
 
 		li $v0, 4
 		la $a0, tbDoanSaiOChu
