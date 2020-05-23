@@ -18,6 +18,7 @@
 	tbTenKhongHopLe: .asciiz "Ten khong hop le\n"
 	inDiem: .asciiz "Diem cua nguoi choi la "
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
+	inSoLuotChienThang: .asciiz "\nTong so luot de gianh chien thang la : "
 	inStop : .asciiz "Ham dung o day"
 	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
 	inPhanTuSau: .asciiz "Phan tu sau la : "
@@ -27,6 +28,9 @@
 	tbTroChoiKetThuc: .asciiz "Da thi het tat ca cac de. Tro choi ket thuc\n"
 	tbCoMuonChoiTiep: .asciiz "Ban co muon choi tiep hay ko?\n0.Khong\n1.Co\nLua chon: "
 	fin: .asciiz "input.txt"
+	fout: .asciiz "nguoichoi.txt"
+	cac: .word 4
+	soLuotChienThang: .word 0
 	soDeThi: .word 0
 	doDaiDeThi: .word 0
 	soDeDaThi: .word 0 # So luong de da lam
@@ -39,6 +43,8 @@
 	oChuChuongTrinh: .space 30
 	doanCaOChu: .space 30
 	oChuTamThoi: .space 30
+	thongTinLuu: .space 30
+	chuoiInt: .space 1
 .text
 
 main:
@@ -81,9 +87,10 @@ main.GoGo:
 	lw $a0, diem
 	syscall
 
-	li $v0, 11
-	li $a0, '\n'
-	syscall
+	jal _LuuNguoiChoi
+
+	jal _XuongDong
+
 	#Hoi nguoi choi co muon choi tiep hay ko
 	li $v0, 4
 	la $a0, tbCoMuonChoiTiep
@@ -108,6 +115,248 @@ main.KhoiTaoLai:
 	sw $0, doDaiDeThi
 	j main.GoGo
 	
+_XuongDong:
+	#Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+	#Than ham
+	li $v0, 11
+	li $a0, '\n'
+	syscall
+	# Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $s5, 52($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	lw $t4, 40($sp)
+	lw $t5, 44($sp)
+	lw $t6, 48($sp)
+	addi $sp, $sp, 64
+	jr $ra
+	
+
+# inputs : $a0 -> integer to convert
+#          $a1 -> address of string where converted number will be kept
+# outputs: none
+int2str:
+addi $sp, $sp, -4         # to avoid headaches save $t- registers used in this procedure on stack
+sw   $t0, ($sp)           # so the values don't change in the caller. We used only $t0 here, so save that.
+j    next0                # else, goto 'next0'
+
+neg_num:                  # body of "if num < 0:"
+li   $t0, '-'
+sb   $t0, ($a1)           # *str = ASCII of '-' 
+addi $a1, $a1, 1          # str++
+li   $t0, -1
+mul  $a0, $a0, $t0        # num *= -1
+
+next0:
+li   $t0, -1
+addi $sp, $sp, -4         # make space on stack
+sw   $t0, ($sp)           # and save -1 (end of stack marker) on MIPS stack
+
+push_digits:
+blez $a0, next1           # num < 0? If yes, end loop (goto 'next1')
+li   $t0, 10              # else, body of while loop here
+div  $a0, $t0             # do num / 10. LO = Quotient, HI = remainder
+mfhi $t0                  # $t0 = num % 10
+mflo $a0                  # num = num // 10  
+addi $sp, $sp, -4         # make space on stack
+sw   $t0, ($sp)           # store num % 10 calculated above on it
+j    push_digits          # and loop
+
+next1:
+lw   $t0, ($sp)           # $t0 = pop off "digit" from MIPS stack
+addi $sp, $sp, 4          # and 'restore' stack
+
+bltz $t0, neg_digit       # if digit <= 0, goto neg_digit (i.e, num = 0)
+j    pop_digits           # else goto popping in a loop
+
+neg_digit:
+li   $t0, '0'
+sb   $t0, ($a1)           # *str = ASCII of '0'
+addi $a1, $a1, 1          # str++
+j    next2                # jump to next2
+
+pop_digits:
+bltz $t0, next2           # if digit <= 0 goto next2 (end of loop)
+addi $t0, $t0, '0'        # else, $t0 = ASCII of digit
+sb   $t0, ($a1)           # *str = ASCII of digit
+addi $a1, $a1, 1          # str++
+lw   $t0, ($sp)           # digit = pop off from MIPS stack 
+addi $sp, $sp, 4          # restore stack
+j    pop_digits           # and loop
+
+next2:
+sb  $zero, ($a1)          # *str = 0 (end of string marker)
+
+lw   $t0, ($sp)           # restore $t0 value before function was called
+addi $sp, $sp, 4          # restore stack
+jr  $ra                   # jump to caller
+
+
+# Viet ham strlen
+_Strlen:
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	move $s0, $a0
+	li $t0, 0
+	_Strlen.Lap:
+	lb $t1, ($s0)
+	beqz $t1, _Strlen.End
+	addi $t0, $t0, 1
+	addi $s0, $s0, 1
+	j _Strlen.Lap
+
+
+	_Strlen.End:
+	move $v0, $t0
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $s5, 52($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	lw $t4, 40($sp)
+	lw $t5, 44($sp)
+	lw $t6, 48($sp)
+	addi $sp, $sp, 64
+	jr $ra
+	
+
+
+#=== Viet diem va ten nguoi choi vao file ====#
+_LuuNguoiChoi:
+	#Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+	#Than ham
+	lw $s0, diem
+	la $s1, tenNguoiChoi
+	lw $s2, soLuotChienThang
+	la $s3, thongTinLuu
+	li $t0, 0
+	li $t4, '\n'
+
+
+
+	LuuNguoiChoi.Lap:
+	lb $t1, ($s1)
+	beq $t1, $t4, LuuNguoiChoi.ContinueDiem
+
+	sb $t1, ($s3)
+
+	addi $s1, $s1, 1
+	addi $s3, $s3, 1
+	addi $t0, $t0, 1
+
+	j LuuNguoiChoi.Lap
+
+	LuuNguoiChoi.ContinueDiem:
+	# Chuyen diem thanh string, tinh do dai string do, sau do them vao chuoi thong tin luu
+	lw $a0, diem
+	la $a1, chuoiInt
+	jal int2str
+
+	la $s1, chuoiInt
+
+	
+	LuuNguoiChoi.Diem:
+	lb $t1, ($s1)
+	beq $t1, $0, LuuNguoiChoi.ContinueIn
+
+	sb $t1, ($s3)
+	addi $s1, $s1, 1
+	addi $s3, $s3, 1
+	addi $t0, $t0, 1
+	j LuuNguoiChoi.Diem
+
+	LuuNguoiChoi.ContinueIn:
+	li   $v0, 13       # system call for open file
+	la   $a0, fout     # output file name
+	li   $a1, 1        # Open for writing (flags are 0: read, 1: write)
+	li   $a2, 0        # mode is ignored
+	syscall            # open a file (file descriptor returned in $v0)
+	move $s6, $v0      # save the file descriptor 
+
+	li $v0, 15
+	move $a0, $s6
+	la $a1, thongTinLuu
+	move $a2, $t0
+	syscall
+
+	Luu.End:
+	#Cuoi ham
+	lw $ra, ($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 36($sp)
+	lw $s5, 52($sp)
+	lw $t0, 20($sp)
+	lw $t1, 24($sp)
+	lw $t2, 28($sp)
+	lw $t3, 32($sp)
+	lw $t4, 40($sp)
+	lw $t5, 44($sp)
+	lw $t6, 48($sp)
+	addi $sp, $sp, 64
+	jr $ra
+	
+
 #======= Show trang thai(int number) =======#
 _ShowTrangThai:
 	#Dau ham
@@ -262,9 +511,11 @@ _ThucHienDuDoan:
 	sw $t4, 40($sp)
 	sw $t5, 44($sp)
 	sw $t6, 48($sp)
+	sw $t7, 56($sp)
 	
 	#=== Than ham
 	# Khoi tao cac bien de thuc hien doan tung ki tu
+	li $t7, 0 # Luu so luot chien thang
 	li $t1, 0 # Luu so lan doan sai
 	lw $t5, doDaiDeThi # Luu do dai de thi
 	li $s5, 0 # So ki tu doan dung
@@ -279,6 +530,7 @@ _ThucHienDuDoan:
 	
 
 	ChonCachDoan:
+	addi $t7, $t7, 1
 	beq $s4, 1, ChonCachDoan.continue # Neu ki tu doan dung, thi nhap ki tu tiep
 	addi $t1, $t1, 1    # Neu ki tu doan sai, tang so lan sai them 1	
 
@@ -338,27 +590,29 @@ _ThucHienDuDoan:
 	bne $t2, $t3, ThuaCuoc
 	j DoanOChu.Lap
 
-	_DuDoanOChu.Thang: # Du doan dung toan bo o chu. Chien thang tro choi
-
+	_DuDoanOChu.Thang: # Du doan dung toan bo o chu. Chien thang tro choi. In thong bao doan dung o chu va tong so luot de gianh chien thang
 	lw $t6, diem
+	lw $s2, doDaiDeThi
 	add $t6, $t6, $s2
 	sw $t6, diem
 
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-
+	jal _XuongDong
 	li $v0, 4
 	la $a0, tbDoanDungOChu
 	syscall
+	jal _XuongDong
 
-	li $v0, 11
-	li $a0, '\n'
+	sw $t7, soLuotChienThang
+
+	li $v0, 4
+	la $a0, inSoLuotChienThang
 	syscall
+
+	li $v0, 1
+	lw $a0, soLuotChienThang
+	syscall
+
+	jal _XuongDong
 
 	j _DuDoan.CuoiHam
 
@@ -423,6 +677,7 @@ _ThucHienDuDoan:
 		syscall
 
 _DuDoan.CuoiHam:
+
 	#=== Cuoi ham
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
@@ -438,6 +693,7 @@ _DuDoan.CuoiHam:
 	lw $t4, 40($sp)
 	lw $t5, 44($sp)
 	lw $t6, 48($sp)
+	lw $t7, 56($sp)
 	addi $sp, $sp, 64
 	jr $ra
 
