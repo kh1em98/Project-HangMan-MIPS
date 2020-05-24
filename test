@@ -46,11 +46,14 @@
 	chuoiInt: .space 30
 	mangDiem: .space 120
 	mangThuTu: .space 120
+	diemTam: .space 30
 
 .text
 main:
 	
 	jal _DocFileNguoiChoi
+
+	jal _TaoMangDiem
 
 	# Doc file de thi, luu nhung gi trong file vao bien cacDeThi, luu so de thi vao bien soDeThi
 	jal _DocFileDeThi
@@ -211,6 +214,58 @@ int2str:
         addi $sp, $sp, 4          # restore stack
         jr  $ra                   # jump to caller
 
+#===== Chuyen string thanh int ======#
+str2int:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	# Than ham
+	la $s1, diemTam
+	li $t0, 10
+	li $s2, 0
+
+	lp:         
+  	lb $t1, ($s1)       #load unsigned char from array into t1
+  	beq $t1, $0, str2int.end     #NULL terminator found
+  	addi $t1, $t1, -48   #converts t1's ascii value to dec value
+  	mul $s2, $s2, $t0    #sum *= 10
+  	add $s2, $s2, $t1    #sum += array[s1]-'0'
+  	addi $s1, $s1, 1     #increment array address
+  	j lp                 #jump to start of loop
+
+	str2int.end:
+	move $v0, $s2
+	# Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
 
 # Viet ham strlen
 _Strlen:
@@ -1368,6 +1423,10 @@ _TaoMangThuTu:
 	sw $t6, 48($sp)
 
 	# Than ham
+	la $a0, mangThuTu
+	li $a1, 120
+	jal _KhoiTaoMang
+
 	lw $s0, soNguoiChoi
 	la $s1, mangThuTu
 	li $t0, 0
@@ -1399,3 +1458,103 @@ _TaoMangThuTu:
         jr $ra
 	
 	
+#==== Tao mang diem =====#
+_TaoMangDiem:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	# Than ham
+	la $a0, mangDiem
+	li $a1, 120
+	jal _KhoiTaoMang
+
+	li $t0, 0
+	li $t1, 0
+	li $t2, ' '
+	lw $s0, soNguoiChoi
+	la $s1, cacNguoiChoi
+	la $s2, mangDiem
+	la $s3, diemTam
+
+	_TaoMangDiem.Lap:
+		bge $t0, $s0, _TaoMangDiem.End
+		lb $t3, ($s1)
+		beq $t3, $t2, _TaoMangDiem.GapDauCach
+		beq $t1, 1, _TaoMangDiem.LuuDiem
+		addi $s1, $s1, 1
+		j _TaoMangDiem.Lap
+
+		_TaoMangDiem.LuuDiem:
+			sb $t3, ($s3)
+			addi $s3, $s3, 1
+			addi $s1, $s1, 1
+			j _TaoMangDiem.Lap
+
+		_TaoMangDiem.GapDauCach:
+			beq $t1, 0, _TaoMangDiem.BatDauLuu
+			# Neu dang luu diem
+			
+			# Chuyen diemTam thanh diemthat, luu vao mang diem
+			jal str2int
+			move $s5, $v0
+			sw $s5, ($s2)
+			addi $s2, $s2, 4
+			
+			# Reset lai bien diem tam
+			la $a0, diemTam
+			li $a1, 30
+			jal _KhoiTaoMang
+			la $s3, diemTam
+
+
+			li $t1, 0
+			addi $s1, $s1, 1
+			addi $t0, $t0, 1
+			j _TaoMangDiem.Lap
+			
+			# Neu gap dau cach nhung chua luu diem thi bat dau luu
+			 _TaoMangDiem.BatDauLuu:
+			li $t1, 1
+			addi $s1, $s1, 1
+			j _TaoMangDiem.Lap
+
+	_TaoMangDiem.End:
+	# Xuat mang diem
+	lw $a0, soNguoiChoi
+	la $a1, mangDiem	
+	jal _XuatMang
+
+	jal _XuongDong
+
+
+	# Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
