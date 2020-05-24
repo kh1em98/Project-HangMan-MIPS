@@ -8,7 +8,7 @@
 	tt6: .asciiz "______\n|/   |\n|    0\n|   /|\\\n|   /\n|\n"
 	tt7: .asciiz "______\n|/   |\n|    0\n|   /|\\\n|   / \\\n|\n"
 	inOChu: .asciiz "Ket qua cua chuong trinh : "
-	tbDoanDungOChu: .asciiz "Chuc mung ban da gianh chien thang \n"
+	tbDoanDungOChu: .asciiz "Chuc mung ban da gianh chien thang"
 	tbDoanSaiOChu: .asciiz "Ban da doan sai. Tro choi ket thuc\n"
 	tbNhapKiTuDuDoan: .asciiz "Nhap ki tu du doan : "
 	tbNhapOChuDuDoan: .asciiz "Nhap o chu du doan : "
@@ -18,7 +18,7 @@
 	tbTenKhongHopLe: .asciiz "Ten khong hop le\n"
 	inDiem: .asciiz "Diem cua nguoi choi la "
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
-	inSoLuotChienThang: .asciiz "\nTong so luot de gianh chien thang la : "
+	inSoLuotChienThang: .asciiz "So luot choi chien thang : "
 	inStop : .asciiz "Ham dung o day"
 	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
 	inPhanTuSau: .asciiz "Phan tu sau la : "
@@ -44,23 +44,32 @@
 	doanCaOChu: .space 30
 	oChuTamThoi: .space 30
 	thongTinLuu: .space 30
-	chuoiInt: .space 1
+	chuoiInt: .space 30
 .text
 
 main:
-	# Khoi tao mangDeDaThi toan phan tu 0
-	la $a0, mangDeDaThi
-	li $a1, 1000
-	jal _KhoiTaoMang
-	lw $0, doDaiDeThi
-
 	# Doc file de thi, luu nhung gi trong file vao bien cacDeThi, luu so de thi vao bien soDeThi
 	jal _DocFileDeThi
 
 	# Lay ten nguoi choi
 	jal _NhapTen
 
-main.TroChoiBatDau:
+
+Thua.ChoiTiep:
+	# Can khoi tao lai so diem, mang de da thi = rong~
+	li $s0, 0 # s0 = 0 -> thua, s0 = 1 -> thang
+	sw $s0, diem
+	sw $s0, soLuotChienThang
+	sw $s0, doDaiDeThi
+	sw $s0, soDeDaThi
+	li $s1, 0 # Luu so luot chien thang
+	# Khoi tao mangDeDaThi toan phan tu 0
+	la $a0, mangDeDaThi
+	li $a1, 1000
+	jal _KhoiTaoMang
+	lw $0, doDaiDeThi
+
+Thang.ChoiTiep:
 	# Kiem tra xem da co de thi chua, neu co thi khoi tao lai
 	lb $t0, dethi
 	bne $t0, $0, main.KhoiTaoLai
@@ -78,7 +87,15 @@ main.GoGo:
 	# Thuc hien du doan
 	jal _ThucHienDuDoan
 
-	# Thong bao diem cho nguoi choi
+	# Luu ket qua thang thua vao $s0
+	move $s0, $v0
+
+	beqz $s0, DaThua
+	
+	# Neu thang
+	addi $s1, $s1, 1
+	sw $s1, soLuotChienThang
+
 	li $v0, 4
 	la $a0, inDiem
 	syscall
@@ -87,11 +104,14 @@ main.GoGo:
 	lw $a0, diem
 	syscall
 
+	jal _XuongDong
+	j Thang.ChoiTiep
+
+	#Luu thong tin nguoi choi, hoi xem co muon choi tiep hay khong
+	DaThua:
 	jal _LuuNguoiChoi
 
 	jal _XuongDong
-
-	#Hoi nguoi choi co muon choi tiep hay ko
 	li $v0, 4
 	la $a0, tbCoMuonChoiTiep
 	syscall
@@ -101,7 +121,7 @@ main.GoGo:
 
 	# Neu nhap vao 0 -> thoat chuong trinh
 	beq $v0, $0, main.ThoatChuongTrinh
-	j main.TroChoiBatDau
+	j Thua.ChoiTiep
 
 main.ThoatChuongTrinh:
 	li $v0, 10
@@ -283,14 +303,20 @@ _LuuNguoiChoi:
 	sw $t5, 44($sp)
 	sw $t6, 48($sp)
 	#Than ham
+	la $a0, chuoiInt
+	li $a1, 30
+	jal _KhoiTaoMang
+
+	la $a0, thongTinLuu
+	li $a1, 30
+	jal _KhoiTaoMang
+
 	lw $s0, diem
 	la $s1, tenNguoiChoi
 	lw $s2, soLuotChienThang
 	la $s3, thongTinLuu
 	li $t0, 0
 	li $t4, '\n'
-
-
 
 	LuuNguoiChoi.Lap:
 	lb $t1, ($s1)
@@ -305,6 +331,11 @@ _LuuNguoiChoi:
 	j LuuNguoiChoi.Lap
 
 	LuuNguoiChoi.ContinueDiem:
+	li $t5, ' '
+	sb $t5, ($s3)
+	addi $s3, $s3, 1
+	addi $t0, $t0, 1
+	
 	# Chuyen diem thanh string, tinh do dai string do, sau do them vao chuoi thong tin luu
 	lw $a0, diem
 	la $a1, chuoiInt
@@ -315,7 +346,7 @@ _LuuNguoiChoi:
 	
 	LuuNguoiChoi.Diem:
 	lb $t1, ($s1)
-	beq $t1, $0, LuuNguoiChoi.ContinueIn
+	beq $t1, $0, LuuNguoiChoi.ContinueSoLuot
 
 	sb $t1, ($s3)
 	addi $s1, $s1, 1
@@ -323,10 +354,37 @@ _LuuNguoiChoi:
 	addi $t0, $t0, 1
 	j LuuNguoiChoi.Diem
 
+	LuuNguoiChoi.ContinueSoLuot:
+	li $t5, ' '
+	sb $t5, ($s3)
+	addi $s3, $s3, 1
+	addi $t0, $t0, 1
+
+	lw $a0, soLuotChienThang
+	la $a1, chuoiInt
+	jal int2str
+
+	la $s1, chuoiInt
+	LuuNguoiChoi.SoLuot:
+	lb $t1, ($s1)
+	beq $t1, $0, LuuNguoiChoi.ContinueIn
+
+	sb $t1, ($s3)
+	addi $s1, $s1, 1
+	addi $s3, $s3, 1
+	addi $t0, $t0, 1
+	j LuuNguoiChoi.SoLuot
+
+
 	LuuNguoiChoi.ContinueIn:
+	li $t5, '\n'
+	sb $t5, ($s3)
+	addi $s3, $s3, 1
+	addi $t0, $t0, 1
+
 	li   $v0, 13       # system call for open file
 	la   $a0, fout     # output file name
-	li   $a1, 1        # Open for writing (flags are 0: read, 1: write)
+	li   $a1, 9        # Open for writing (flags are 0: read, 1: write)
 	li   $a2, 0        # mode is ignored
 	syscall            # open a file (file descriptor returned in $v0)
 	move $s6, $v0      # save the file descriptor 
@@ -336,6 +394,12 @@ _LuuNguoiChoi:
 	la $a1, thongTinLuu
 	move $a2, $t0
 	syscall
+
+	jal _XuongDong
+	li $v0, 4
+	la $a0, thongTinLuu
+	syscall
+	jal _XuongDong
 
 	Luu.End:
 	#Cuoi ham
@@ -602,17 +666,9 @@ _ThucHienDuDoan:
 	syscall
 	jal _XuongDong
 
-	sw $t7, soLuotChienThang
-
-	li $v0, 4
-	la $a0, inSoLuotChienThang
-	syscall
+	jal _XuongDong
 
 	li $v0, 1
-	lw $a0, soLuotChienThang
-	syscall
-
-	jal _XuongDong
 
 	j _DuDoan.CuoiHam
 
@@ -675,6 +731,8 @@ _ThucHienDuDoan:
 		li $v0, 4
 		la $a0, tbDoanSaiOChu
 		syscall
+
+		li $v0, 0
 
 _DuDoan.CuoiHam:
 
@@ -1154,6 +1212,8 @@ LayDeThi.KetThuc:
 	jr $ra
 
 LayDeThi.ThiHetRoi:
+	jal _LuuNguoiChoi
+
 	li $v0, 4
 	la $a0, tbTroChoiKetThuc
 	syscall
