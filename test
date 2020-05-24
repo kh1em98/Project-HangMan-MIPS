@@ -13,19 +13,21 @@
 	tbNhapKiTuDuDoan: .asciiz "Nhap ki tu du doan : "
 	tbNhapOChuDuDoan: .asciiz "Nhap o chu du doan : "
 	tbThucHienDoan: .asciiz "Chon kieu du doan\n1.Doan ki tu\n2.Doan o chu\nLua chon: "
-	tbOChuDuDoan: .asciiz "O chu cua chuong trinh hom nay la : "
+	tbOChuDuDoan: .asciiz "O chu cua chuong trinh la : "
 	tbNhapTen: .asciiz "Nhap ten : "
 	tbTenKhongHopLe: .asciiz "Ten khong hop le\n"
+	tbDanhSachNguoiChoi: .asciiz "Top 10 nguoi choi diem cao nhat : "
+	tbKetQua: .asciiz "Ket qua cua ban la : "
 	inDiem: .asciiz "Diem cua nguoi choi la "
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
 	inSoLuotChienThang: .asciiz "So luot choi chien thang : "
-	inStop : .asciiz "Ham dung o day"
 	tbBatDauChoi: .asciiz "Bat dau choi"
 	tbTroChoiKetThuc: .asciiz "Da thi het tat ca cac de. Tro choi ket thuc\n"
 	tbCoMuonChoiTiep: .asciiz "Ban co muon choi tiep hay ko?\n0.Khong\n1.Co\nLua chon: "
+
 	fin: .asciiz "input.txt"
-	fout: .asciiz "D:\\Download\\MARS 4.0.1\\nguoichoi.txt"
-	cac: .word 4
+	fout: .asciiz "nguoichoi.txt"
+
 	soLuotChienThang: .word 0
 	soDeThi: .word 0
 	doDaiDeThi: .word 0
@@ -33,28 +35,24 @@
 	soLanSai: .word 0
 	diem: .word 0
 	soNguoiChoi: .word 0
+
+	mangDeDaThi: .space 1000
 	cacNguoiChoi: .space 900
 	mangNguoiChoi: .space 900
-	cacDeThi: .space 30
+	cacDeThi: .space 900
+	mangDiem: .space 120
+	mangThuTu: .space 120
 	dethi: .space 30
-	mangDeDaThi: .space 1000 # Mang luu nhung de da thi
 	tenNguoiChoi: .space 10
 	oChuChuongTrinh: .space 30
 	doanCaOChu: .space 30
 	oChuTamThoi: .space 30
 	thongTinLuu: .space 30
 	chuoiInt: .space 30
-	mangDiem: .space 120
-	mangThuTu: .space 120
 	diemTam: .space 30
 
 .text
 main:
-	
-	jal _DocFileNguoiChoi
-
-	jal _TaoMangDiem
-
 	# Doc file de thi, luu nhung gi trong file vao bien cacDeThi, luu so de thi vao bien soDeThi
 	jal _DocFileDeThi
 
@@ -73,7 +71,7 @@ Thua.ChoiTiep:
 	# Khoi tao mangDeDaThi toan phan tu 0
 	la $a0, mangDeDaThi
 	li $a1, 1000
-	jal _KhoiTaoMang
+	jal _KhoiTaoMangSoNguyen
 	lw $0, doDaiDeThi
 
 Thang.ChoiTiep:
@@ -117,6 +115,11 @@ main.GoGo:
 	#Luu thong tin nguoi choi, hoi xem co muon choi tiep hay khong
 	DaThua:
 	jal _LuuNguoiChoi
+
+	jal _DocFileNguoiChoi
+
+	jal _TaoMangDiem
+
 	li $v0, 4
 	la $a0, tbCoMuonChoiTiep
 	syscall
@@ -433,6 +436,10 @@ _LuuNguoiChoi:
 	syscall
 
 	li $v0, 4
+	la $a0, tbKetQua
+	syscall
+	
+	li $v0, 4
 	la $a0, thongTinLuu
 	syscall
 
@@ -547,6 +554,55 @@ _ShowTrangThai:
 
 	_ShowTrangThai.End:
         #Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
+
+#===== Khoi tao mang so nguyen =====#
+_KhoiTaoMangSoNguyen:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	# Than ham
+	la $s0, mangDeDaThi
+	li $s1, 250
+	li $t0, 0
+	_KhoiTaoMangSoNguyen.Lap:
+	bge $t0, $s1, _KhoiTaoMangSoNguyen.End
+	sw $0, ($s0)
+	addi $s0, $s0, 4
+	addi $t0, $t0, 1
+	j _KhoiTaoMangSoNguyen.Lap
+
+	_KhoiTaoMangSoNguyen.End:
+	# Cuoi ham
         lw $ra, ($sp)
         lw $s0, 4($sp)
         lw $s1, 8($sp)
@@ -1069,11 +1125,16 @@ _DocFileDeThi:
 	li $v0, 14
 	move $a0, $s0
 	la $a1, cacDeThi
-	li $a2, 30
+	li $a2, 900
 	syscall
 
 	# s2 = so ki tu trong file
 	move $s2, $v0
+
+	# Close file
+	li $v0, 16
+	move $a0, $s0
+	syscall
 
 	#Dem so tu trong de thi, luu vao $s0
 	li $s0, 1 # Bien luu ket qua so tu
@@ -1114,7 +1175,7 @@ _DocFileDeThi:
 
 
 #=================== Ham lay de thi ngau nhien ======================================#
-_LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do dai de thi vao $v1, luu so de thi vao $v2
+_LayDeThiNgauNhien: 
 	# Dau ham
 	addi $sp, $sp, -64
 	sw $ra, ($sp)
@@ -1130,7 +1191,7 @@ _LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do d
 	sw $t3, 32($sp)
 
 	# Than ham
-	#Kiem tra xem da thi het 250 de hay chua, neu co thi ket thuc luon
+	#Kiem tra xem da thi het de hay chua, neu co thi ket thuc luon
 	lw $s0, soDeDaThi
 	lw $s1, soDeThi
 	slt $t0, $s0, $s1
@@ -1144,11 +1205,12 @@ _LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do d
         lw $a1, soDeThi
         syscall 
 
-        # s0 la so ngau nhien
+        # Tang so ngau nhien len 1
         move $s0, $a0
         addi $s0, $s0, 1
 
         la $s4, mangDeDaThi
+
         # Kiem tra xem so ngau nhien do co bi trung vs cac de da thi hay ko
     TaoSoNgauNhien.Trung:
         lw $t1, ($s4)
@@ -1186,7 +1248,6 @@ _LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do d
 
     LayDeThi.LayTu:
         lb $t1, ($s1)
-
         beq $t1, $t2, LayDeThi.KetThuc # Neu = '*' hoac = '\0' -> ket thuc
         beqz $t1, LayDeThi.KetThuc
         sb $t1, ($s2) # Neu la ki tu binh thuong thi luu vao mang moi
@@ -1314,17 +1375,9 @@ _DocFileNguoiChoi:
 	    sw $t0, soNguoiChoi
 	
 	#Cuoi ham
-        li $v0, 4
-        la $a0, mangNguoiChoi
-        syscall
         jal _XuongDong
 	
 	jal _TaoMangThuTu
-
-	lw $a0, soNguoiChoi
-	la $a1, mangThuTu
-	jal _XuatMang
-	jal _XuongDong
 
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
@@ -1534,13 +1587,175 @@ _TaoMangDiem:
 
 	_TaoMangDiem.End:
 	# Xuat mang diem
-	lw $a0, soNguoiChoi
-	la $a1, mangDiem	
-	jal _XuatMang
+	jal _SapXepMangDiem
 
+	jal _InMangNguoiChoiSapXep
+
+	# Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
+
+#==== Sap xep mang diem, doi thu tu =====#
+_SapXepMangDiem:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+	# Than ham
+	li $t1, 1
+	lw $t2, soNguoiChoi
+	ble $t2, 1, _SapXepMangDiem.End
+	li $t1, 4
+	mult $t2, $t1
+	mflo $a0
+	addi $a0, $a0, -4
+	la $t0, mangDiem
+	add $t0, $t0, $a0
+
+outterLoop:
+	# t1 la boolean cho biet mang da sap xep xong chua
+	add $t1, $0, $0
+	la $s0, mangDiem
+	la $s1, mangThuTu
+
+innerLoop:
+	lw $t2, ($s0)
+	lw $t3, 4($s0)
+	#So sanh xem so truoc co lon hon so sau ko, neu co thi swap, khong thi tiep tuc
+	slt $t4, $t2, $t3
+	beq $t4, 0, continue
+	#Swap 2 so, t1 = false
+	addi $t1, $0, 1
+	sw $t2, 4($s0)
+	sw $t3, ($s0)
+	lw $t5, ($s1)
+	lw $t6, 4($s1)
+	sw $t5, 4($s1)
+	sw $t6, ($s1)
+
+continue:
+	addi $s0, $s0, 4
+	addi $s1, $s1, 4
+	bne $s0, $t0, innerLoop #Neu chua phai ki tu cuoi mang
+	bne $t1, $0, outterLoop #Neu van can phai swap
+
+	_SapXepMangDiem.End:
+	# Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
+
+
+#===== In mang diem sap xep =======#
+_InMangNguoiChoiSapXep:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	# Than ham
+	li $v0, 4
+	la $a0, tbDanhSachNguoiChoi
+	syscall
 	jal _XuongDong
 
+	li $t0, 10
+	lw $s0, soNguoiChoi
 
+	ble $s0, $t0, _InMangNguoiChoiSapXep.ThucHienIn
+	# Neu nhieu hon 10 nguoi choi, gan toi da = 10
+	li $s0, 10
+
+_InMangNguoiChoiSapXep.ThucHienIn:
+	la $s1, mangNguoiChoi
+	la $s2, mangNguoiChoi
+	la $s3, mangThuTu
+	li $t0, 0
+	li $t1, 0
+	li $t2, '*'
+	li $t3, 30
+	lw $t4, ($s3)
+	mult $t4, $t3
+	mflo $t4
+	add $s1, $s1, $t4
+
+	_InMangNguoiChoiSapXep.Lap:
+		bge $t0, $s0, _InMangNguoiChoiSapXep.End
+		lb $t3, ($s1)
+		beq $t3, $t2, _InMangNguoiChoiSapXep.TangPhanTu
+		# Neu khong phai dau * thi in ki tu ra
+		li $v0, 11
+		move $a0, $t3
+		syscall
+		addi $s1, $s1, 1
+		j _InMangNguoiChoiSapXep.Lap
+
+	_InMangNguoiChoiSapXep.TangPhanTu:
+		addi $s3, $s3, 4
+		li $t3, 30
+		lw $t4, ($s3)
+		mult $t4, $t3
+		mflo $t4
+		la $s1, mangNguoiChoi
+		add $s1, $s1, $t4
+		addi $t0, $t0, 1
+		jal _XuongDong
+		j _InMangNguoiChoiSapXep.Lap
+		
+		
+	_InMangNguoiChoiSapXep.End:
+	jal _XuongDong
 	# Cuoi ham
         lw $ra, ($sp)
         lw $s0, 4($sp)
