@@ -20,15 +20,11 @@
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
 	inSoLuotChienThang: .asciiz "So luot choi chien thang : "
 	inStop : .asciiz "Ham dung o day"
-	inPhanTuHienTai: .asciiz "Phan tu hien tai la : "
-	inPhanTuSau: .asciiz "Phan tu sau la : "
-	inSoNgauNhien: .asciiz "So ngau nhien la : "
 	tbBatDauChoi: .asciiz "Bat dau choi"
-	tbKhoiTaoLai: .asciiz "Khoi tao lai"
 	tbTroChoiKetThuc: .asciiz "Da thi het tat ca cac de. Tro choi ket thuc\n"
 	tbCoMuonChoiTiep: .asciiz "Ban co muon choi tiep hay ko?\n0.Khong\n1.Co\nLua chon: "
 	fin: .asciiz "input.txt"
-	fout: .asciiz "nguoichoi.txt"
+	fout: .asciiz "D:\\Download\\MARS 4.0.1\\nguoichoi.txt"
 	cac: .word 4
 	soLuotChienThang: .word 0
 	soDeThi: .word 0
@@ -36,6 +32,9 @@
 	soDeDaThi: .word 0 # So luong de da lam
 	soLanSai: .word 0
 	diem: .word 0
+	soNguoiChoi: .word 0
+	cacNguoiChoi: .space 900
+	mangNguoiChoi: .space 900
 	cacDeThi: .space 30
 	dethi: .space 30
 	mangDeDaThi: .space 1000 # Mang luu nhung de da thi
@@ -45,9 +44,14 @@
 	oChuTamThoi: .space 30
 	thongTinLuu: .space 30
 	chuoiInt: .space 30
-.text
+	mangDiem: .space 120
+	mangThuTu: .space 120
 
+.text
 main:
+	
+	jal _DocFileNguoiChoi
+
 	# Doc file de thi, luu nhung gi trong file vao bien cacDeThi, luu so de thi vao bien soDeThi
 	jal _DocFileDeThi
 
@@ -110,8 +114,6 @@ main.GoGo:
 	#Luu thong tin nguoi choi, hoi xem co muon choi tiep hay khong
 	DaThua:
 	jal _LuuNguoiChoi
-
-	jal _XuongDong
 	li $v0, 4
 	la $a0, tbCoMuonChoiTiep
 	syscall
@@ -135,104 +137,79 @@ main.KhoiTaoLai:
 	sw $0, doDaiDeThi
 	j main.GoGo
 	
+
+
+#====== Ham xuong dong ====#
 _XuongDong:
 	#Dau ham
 	addi $sp, $sp, -64
 	sw $ra, ($sp)
-	sw $s0, 4($sp)
-	sw $s1, 8($sp)
-	sw $s2, 12($sp)
-	sw $s3, 16($sp)
-	sw $s4, 36($sp)
-	sw $s5, 52($sp)
-	sw $t0, 20($sp)
-	sw $t1, 24($sp)
-	sw $t2, 28($sp)
-	sw $t3, 32($sp)
-	sw $t4, 40($sp)
-	sw $t5, 44($sp)
-	sw $t6, 48($sp)
 	#Than ham
 	li $v0, 11
 	li $a0, '\n'
 	syscall
 	# Cuoi ham
 	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	lw $s1, 8($sp)
-	lw $s2, 12($sp)
-	lw $s3, 16($sp)
-	lw $s4, 36($sp)
-	lw $s5, 52($sp)
-	lw $t0, 20($sp)
-	lw $t1, 24($sp)
-	lw $t2, 28($sp)
-	lw $t3, 32($sp)
-	lw $t4, 40($sp)
-	lw $t5, 44($sp)
-	lw $t6, 48($sp)
 	addi $sp, $sp, 64
 	jr $ra
 	
 
-# inputs : $a0 -> integer to convert
-#          $a1 -> address of string where converted number will be kept
-# outputs: none
+#=== Chuyen so thanh ki tu, $a0 la so, $a1 la noi luu ky tu ==#
 int2str:
-addi $sp, $sp, -4         # to avoid headaches save $t- registers used in this procedure on stack
-sw   $t0, ($sp)           # so the values don't change in the caller. We used only $t0 here, so save that.
-j    next0                # else, goto 'next0'
+    addi $sp, $sp, -4         # to avoid headaches save $t- registers used in this procedure on stack
+    sw   $t0, ($sp)           # so the values don't change in the caller. We used only $t0 here, so save that.
+    j    next0                # else, goto 'next0'
 
-neg_num:                  # body of "if num < 0:"
-li   $t0, '-'
-sb   $t0, ($a1)           # *str = ASCII of '-' 
-addi $a1, $a1, 1          # str++
-li   $t0, -1
-mul  $a0, $a0, $t0        # num *= -1
+    neg_num:                  # body of "if num < 0:"
+        li   $t0, '-'
+        sb   $t0, ($a1)           # *str = ASCII of '-' 
+        addi $a1, $a1, 1          # str++
+        li   $t0, -1
+        mul  $a0, $a0, $t0        # num *= -1
 
-next0:
-li   $t0, -1
-addi $sp, $sp, -4         # make space on stack
-sw   $t0, ($sp)           # and save -1 (end of stack marker) on MIPS stack
+    next0:
+        li   $t0, -1
+        addi $sp, $sp, -4         # make space on stack
+        sw   $t0, ($sp)           # and save -1 (end of stack marker) on MIPS stack
 
-push_digits:
-blez $a0, next1           # num < 0? If yes, end loop (goto 'next1')
-li   $t0, 10              # else, body of while loop here
-div  $a0, $t0             # do num / 10. LO = Quotient, HI = remainder
-mfhi $t0                  # $t0 = num % 10
-mflo $a0                  # num = num // 10  
-addi $sp, $sp, -4         # make space on stack
-sw   $t0, ($sp)           # store num % 10 calculated above on it
-j    push_digits          # and loop
+    push_digits:
+        blez $a0, next1           # num < 0? If yes, end loop (goto 'next1')
+        li   $t0, 10              # else, body of while loop here
+        div  $a0, $t0             # do num / 10. LO = Quotient, HI = remainder
+        mfhi $t0                  # $t0 = num % 10
+        mflo $a0                  # num = num // 10  
+        addi $sp, $sp, -4         # make space on stack
+        sw   $t0, ($sp)           # store num % 10 calculated above on it
+        j    push_digits          # and loop
 
-next1:
-lw   $t0, ($sp)           # $t0 = pop off "digit" from MIPS stack
-addi $sp, $sp, 4          # and 'restore' stack
+    next1:
+        lw   $t0, ($sp)           # $t0 = pop off "digit" from MIPS stack
+        addi $sp, $sp, 4          # and 'restore' stack
 
-bltz $t0, neg_digit       # if digit <= 0, goto neg_digit (i.e, num = 0)
-j    pop_digits           # else goto popping in a loop
+        bltz $t0, neg_digit       # if digit <= 0, goto neg_digit (i.e, num = 0)
+        j    pop_digits           # else goto popping in a loop
 
-neg_digit:
-li   $t0, '0'
-sb   $t0, ($a1)           # *str = ASCII of '0'
-addi $a1, $a1, 1          # str++
-j    next2                # jump to next2
+    neg_digit:
+        li   $t0, '0'
+        sb   $t0, ($a1)           # *str = ASCII of '0'
+        addi $a1, $a1, 1          # str++
+        j    next2                # jump to next2
 
-pop_digits:
-bltz $t0, next2           # if digit <= 0 goto next2 (end of loop)
-addi $t0, $t0, '0'        # else, $t0 = ASCII of digit
-sb   $t0, ($a1)           # *str = ASCII of digit
-addi $a1, $a1, 1          # str++
-lw   $t0, ($sp)           # digit = pop off from MIPS stack 
-addi $sp, $sp, 4          # restore stack
-j    pop_digits           # and loop
+    pop_digits:
+        bltz $t0, next2           # if digit <= 0 goto next2 (end of loop)
+        addi $t0, $t0, '0'        # else, $t0 = ASCII of digit
+        sb   $t0, ($a1)           # *str = ASCII of digit
+        addi $a1, $a1, 1          # str++
+        lw   $t0, ($sp)           # digit = pop off from MIPS stack 
+        addi $sp, $sp, 4          # restore stack
+        j    pop_digits           # and loop
 
-next2:
-sb  $zero, ($a1)          # *str = 0 (end of string marker)
+    next2:
+        sb  $zero, ($a1)          # *str = 0 (end of string marker)
 
-lw   $t0, ($sp)           # restore $t0 value before function was called
-addi $sp, $sp, 4          # restore stack
-jr  $ra                   # jump to caller
+        lw   $t0, ($sp)           # restore $t0 value before function was called
+        addi $sp, $sp, 4          # restore stack
+        jr  $ra                   # jump to caller
 
 
 # Viet ham strlen
@@ -319,106 +296,109 @@ _LuuNguoiChoi:
 	li $t4, '\n'
 
 	LuuNguoiChoi.Lap:
-	lb $t1, ($s1)
-	beq $t1, $t4, LuuNguoiChoi.ContinueDiem
+        lb $t1, ($s1)
+        beq $t1, $t4, LuuNguoiChoi.ContinueDiem
 
-	sb $t1, ($s3)
+        sb $t1, ($s3)
 
-	addi $s1, $s1, 1
-	addi $s3, $s3, 1
-	addi $t0, $t0, 1
+        addi $s1, $s1, 1
+        addi $s3, $s3, 1
+        addi $t0, $t0, 1
 
-	j LuuNguoiChoi.Lap
+        j LuuNguoiChoi.Lap
 
 	LuuNguoiChoi.ContinueDiem:
-	li $t5, ' '
-	sb $t5, ($s3)
-	addi $s3, $s3, 1
-	addi $t0, $t0, 1
-	
-	# Chuyen diem thanh string, tinh do dai string do, sau do them vao chuoi thong tin luu
-	lw $a0, diem
-	la $a1, chuoiInt
-	jal int2str
+        li $t5, ' '
+        sb $t5, ($s3)
+        addi $s3, $s3, 1
+        addi $t0, $t0, 1
+        
+        # Chuyen diem thanh string, tinh do dai string do, sau do them vao chuoi thong tin luu
+        lw $a0, diem
+        la $a1, chuoiInt
+        jal int2str
 
-	la $s1, chuoiInt
+        la $s1, chuoiInt
 
 	
 	LuuNguoiChoi.Diem:
-	lb $t1, ($s1)
-	beq $t1, $0, LuuNguoiChoi.ContinueSoLuot
+        lb $t1, ($s1)
+        beq $t1, $0, LuuNguoiChoi.ContinueSoLuot
 
-	sb $t1, ($s3)
-	addi $s1, $s1, 1
-	addi $s3, $s3, 1
-	addi $t0, $t0, 1
-	j LuuNguoiChoi.Diem
+        sb $t1, ($s3)
+        addi $s1, $s1, 1
+        addi $s3, $s3, 1
+        addi $t0, $t0, 1
+        j LuuNguoiChoi.Diem
 
 	LuuNguoiChoi.ContinueSoLuot:
-	li $t5, ' '
-	sb $t5, ($s3)
-	addi $s3, $s3, 1
-	addi $t0, $t0, 1
+        li $t5, ' '
+        sb $t5, ($s3)
+        addi $s3, $s3, 1
+        addi $t0, $t0, 1
 
-	lw $a0, soLuotChienThang
-	la $a1, chuoiInt
-	jal int2str
+        lw $a0, soLuotChienThang
+        la $a1, chuoiInt
+        jal int2str
 
-	la $s1, chuoiInt
+        la $s1, chuoiInt
 	LuuNguoiChoi.SoLuot:
-	lb $t1, ($s1)
-	beq $t1, $0, LuuNguoiChoi.ContinueIn
+        lb $t1, ($s1)
+        beq $t1, $0, LuuNguoiChoi.VietVaoFile
 
-	sb $t1, ($s3)
-	addi $s1, $s1, 1
-	addi $s3, $s3, 1
-	addi $t0, $t0, 1
-	j LuuNguoiChoi.SoLuot
+        sb $t1, ($s3)
+        addi $s1, $s1, 1
+        addi $s3, $s3, 1
+        addi $t0, $t0, 1
+        j LuuNguoiChoi.SoLuot
 
 
-	LuuNguoiChoi.ContinueIn:
-	li $t5, '\n'
-	sb $t5, ($s3)
-	addi $s3, $s3, 1
-	addi $t0, $t0, 1
+	LuuNguoiChoi.VietVaoFile:
+        li $t5, '\n'
+        sb $t5, ($s3)
+        addi $s3, $s3, 1
+        addi $t0, $t0, 1
 
-	li   $v0, 13       # system call for open file
-	la   $a0, fout     # output file name
-	li   $a1, 9        # Open for writing (flags are 0: read, 1: write)
-	li   $a2, 0        # mode is ignored
-	syscall            # open a file (file descriptor returned in $v0)
-	move $s6, $v0      # save the file descriptor 
+	li $v0, 13
+	la $a0, fout
+	li $a1, 9
+	li $a2, 0
+	syscall
+	move $s6, $v0
 
-	li $v0, 15
+	li $v0, 15       
+  	move $a0, $s6      
+  	la $a1, thongTinLuu
+  	move $a2, $t0 
+  	syscall          
+
+	# Dong file
+	li $v0, 16
 	move $a0, $s6
-	la $a1, thongTinLuu
-	move $a2, $t0
 	syscall
 
-	jal _XuongDong
 	li $v0, 4
 	la $a0, thongTinLuu
 	syscall
-	jal _XuongDong
 
 	Luu.End:
-	#Cuoi ham
-	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	lw $s1, 8($sp)
-	lw $s2, 12($sp)
-	lw $s3, 16($sp)
-	lw $s4, 36($sp)
-	lw $s5, 52($sp)
-	lw $t0, 20($sp)
-	lw $t1, 24($sp)
-	lw $t2, 28($sp)
-	lw $t3, 32($sp)
-	lw $t4, 40($sp)
-	lw $t5, 44($sp)
-	lw $t6, 48($sp)
-	addi $sp, $sp, 64
-	jr $ra
+        #Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
 	
 
 #======= Show trang thai(int number) =======#
@@ -451,111 +431,83 @@ _ShowTrangThai:
 	beq $s0, 8, _ShowTrangThai.7
 
 	_ShowTrangThai.0:
-	j _ShowTrangThai.End
+	    j _ShowTrangThai.End
 
 	_ShowTrangThai.1:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt1
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt1
+        syscall
+    	jal _XuongDong
+        j _ShowTrangThai.End
 
 	_ShowTrangThai.2:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt2
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt2
+        syscall
+   	jal _XuongDong
+        j _ShowTrangThai.End
 
 	_ShowTrangThai.3:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt3
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt3
+        syscall
+   	jal _XuongDong
+        j _ShowTrangThai.End
 
 	_ShowTrangThai.4:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt4
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt4
+        syscall
+    	jal _XuongDong
+        j _ShowTrangThai.End
 
 	_ShowTrangThai.5:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt5
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt5
+        syscall
+    	jal _XuongDong
+        j _ShowTrangThai.End
 
 	_ShowTrangThai.6:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt6
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt6
+        syscall
+    	jal _XuongDong
+        j _ShowTrangThai.End
 
 	_ShowTrangThai.7:
-	li $v0, 11
-	li $a0, '\n'
-	syscall
-	li $v0, 4,
-	la $a0, tt7
-	syscall
-	li $v0, 11
-	li $a0, '\n'
-	syscall 
-	j _ShowTrangThai.End
+    	jal _XuongDong
+        li $v0, 4,
+        la $a0, tt7
+        syscall
+    	jal _XuongDong 
+        j _ShowTrangThai.End
 
 
 	_ShowTrangThai.End:
-	#Cuoi ham
-	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	lw $s1, 8($sp)
-	lw $s2, 12($sp)
-	lw $s3, 16($sp)
-	lw $s4, 36($sp)
-	lw $s5, 52($sp)
-	lw $t0, 20($sp)
-	lw $t1, 24($sp)
-	lw $t2, 28($sp)
-	lw $t3, 32($sp)
-	lw $t4, 40($sp)
-	lw $t5, 44($sp)
-	lw $t6, 48($sp)
-	addi $sp, $sp, 64
-	jr $ra
+        #Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
 
 #======= Thuc hien du doan ========#
 _ThucHienDuDoan:
@@ -594,135 +546,133 @@ _ThucHienDuDoan:
 	
 
 	ChonCachDoan:
-	addi $t7, $t7, 1
-	beq $s4, 1, ChonCachDoan.continue # Neu ki tu doan dung, thi nhap ki tu tiep
-	addi $t1, $t1, 1    # Neu ki tu doan sai, tang so lan sai them 1	
+        addi $t7, $t7, 1
+        beq $s4, 1, ChonCachDoan.continue # Neu ki tu doan dung, thi nhap ki tu tiep
+        addi $t1, $t1, 1    # Neu ki tu doan sai, tang so lan sai them 1	
 
-	bgt $t1, 7, ThuaCuoc # Neu sai qua 7 lan -> thua cuoc
-	
-	# Show trang thai neu doan sai
-	move $a0, $t1
-	jal _ShowTrangThai
+        bgt $t1, 7, ThuaCuoc # Neu sai qua 7 lan -> thua cuoc
+        
+        # Show trang thai neu doan sai
+        move $a0, $t1
+        jal _ShowTrangThai
 	
 	ChonCachDoan.continue:
-	la $a0, oChuTamThoi
-	jal _ShowOChuDuDoan
-	
-	li $v0, 11
-	li $a0, '\n'
-	syscall
+        la $a0, oChuTamThoi
+        jal _ShowOChuDuDoan
+        
+    	jal _XuongDong
 
-	li $v0, 4
-	la $a0, tbThucHienDoan
-	syscall
+        li $v0, 4
+        la $a0, tbThucHienDoan
+        syscall
 
-	li $v0, 5
-	syscall
+        li $v0, 5
+        syscall
 
-	#Luu lua chon vao $s0
-	move $s0, $v0	
+        #Luu lua chon vao $s0
+        move $s0, $v0	
 
-	# Neu s0 = 1 -> doan ki tu, con khong thi doan o chu
-	beq $s0, 1, _ThucHien.DoanKiTu
+        # Neu s0 = 1 -> doan ki tu, con khong thi doan o chu
+        beq $s0, 1, _ThucHien.DoanKiTu
 
 	#=== Doan ca o chu ===#
 	_ThucHien.DoanOChu:
-	# Nhap o chu du doan
-	li $v0, 4
-	la $a0, tbNhapOChuDuDoan
-	syscall
+        # Nhap o chu du doan
+        li $v0, 4
+        la $a0, tbNhapOChuDuDoan
+        syscall
 
-	li $v0, 8
-	la $a0, doanCaOChu
-	li $a1, 30
-	syscall
+        li $v0, 8
+        la $a0, doanCaOChu
+        li $a1, 30
+        syscall
 
-	# kiem tra xem du doan dung ko
-	li $t0, 0 # Bien dem
-	li $t1, 0 # Luu ket qua kiem tra
-	lw $s2, doDaiDeThi
-	la $s0, doanCaOChu
-	la $s1, dethi
+        # kiem tra xem du doan dung ko
+        li $t0, 0 # Bien dem
+        li $t1, 0 # Luu ket qua kiem tra
+        lw $s2, doDaiDeThi
+        la $s0, doanCaOChu
+        la $s1, dethi
 	
 	DoanOChu.Lap:
-	bge $t0, $s2, _DuDoanOChu.Thang
-	lb $t2, ($s0)
-	lb $t3, ($s1)
-	addi $t0, $t0, 1
-	addi $s0, $s0, 1
-	addi $s1, $s1, 1
-	bne $t2, $t3, ThuaCuoc
-	j DoanOChu.Lap
+        bge $t0, $s2, _DuDoanOChu.Thang
+        lb $t2, ($s0)
+        lb $t3, ($s1)
+        addi $t0, $t0, 1
+        addi $s0, $s0, 1
+        addi $s1, $s1, 1
+        bne $t2, $t3, ThuaCuoc
+        j DoanOChu.Lap
 
 	_DuDoanOChu.Thang: # Du doan dung toan bo o chu. Chien thang tro choi. In thong bao doan dung o chu va tong so luot de gianh chien thang
-	lw $t6, diem
-	lw $s2, doDaiDeThi
-	add $t6, $t6, $s2
-	sw $t6, diem
+        lw $t6, diem
+        lw $s2, doDaiDeThi
+        add $t6, $t6, $s2
+        sw $t6, diem
 
-	jal _XuongDong
-	li $v0, 4
-	la $a0, tbDoanDungOChu
-	syscall
-	jal _XuongDong
+            jal _XuongDong
+        li $v0, 4
+        la $a0, tbDoanDungOChu
+        syscall
+            jal _XuongDong
 
-	jal _XuongDong
+            jal _XuongDong
 
-	li $v0, 1
+        li $v0, 1
 
-	j _DuDoan.CuoiHam
+        j _DuDoan.CuoiHam
 
 	#===== Ket thuc phan du doan ca o chu ====#
 
 	#== Thuc hien doan tung ki tu ==#
 	_ThucHien.DoanKiTu:
-	# Kiem tra trong de thi co ki tu nay khong
-	li $t0, 0 # Bien dem lap ki tu
-	li $t2, 0 # Bien dem kiem tra ki tu
-	la $s1, dethi
-	li $s4, 0
-	la $s2, oChuTamThoi
+        # Kiem tra trong de thi co ki tu nay khong
+        li $t0, 0 # Bien dem lap ki tu
+        li $t2, 0 # Bien dem kiem tra ki tu
+        la $s1, dethi
+        li $s4, 0
+        la $s2, oChuTamThoi
 
-	_DoanKiTu.LapNhapKiTu:
-		_DoanKiTu.NhapKiTu:
-		li $s4, 0 # Luu ket qua cua viec kiem tra
-		li $t2, 0 # Bien dem cua kiem tra ki tu
+        _DoanKiTu.LapNhapKiTu:
+            _DoanKiTu.NhapKiTu:
+                li $s4, 0 # Luu ket qua cua viec kiem tra
+                li $t2, 0 # Bien dem cua kiem tra ki tu
 
-		li $v0, 4 
-		la $a0, tbNhapKiTuDuDoan
-		syscall
+                li $v0, 4 
+                la $a0, tbNhapKiTuDuDoan
+                syscall
 
-		li $v0, 12
-		syscall
-		# Luu ki tu du doan vao $s3
-		move $s3, $v0
-		la $s2, oChuTamThoi
-		la $s1, dethi
-		_DoanKiTu.KiemTraKiTu:
-			# Kiem tra xem da kiem tra xong chua
-			addi $t2, $t2, 1
-			bgt $t2, $t5, ChonCachDoan
+                li $v0, 12
+                syscall
+                # Luu ki tu du doan vao $s3
+                move $s3, $v0
+                la $s2, oChuTamThoi
+                la $s1, dethi
+            _DoanKiTu.KiemTraKiTu:
+                # Kiem tra xem da kiem tra xong chua
+                addi $t2, $t2, 1
+                bgt $t2, $t5, ChonCachDoan
 
-			lb $t3, ($s1)  # Luu dethi[i] vao $t3
+                lb $t3, ($s1)  # Luu dethi[i] vao $t3
 
-			beq $s3, $t3, KiTuDung
-			addi $s1, $s1, 1
-			addi $s2, $s2, 1
-			j _DoanKiTu.KiemTraKiTu
+                beq $s3, $t3, KiTuDung
+                addi $s1, $s1, 1
+                addi $s2, $s2, 1
+                j _DoanKiTu.KiemTraKiTu
 
-			KiTuDung:
-			lb $t4, ($s2)
-			bne $t4, '*', KiTuDung.Continue
-			# Neu bang dau *, thi moi luu vao de thi, va tang so luong ki tu doan dung
-			sb $s3, ($s2)
-			addi $s5, $s5, 1 # +1 so ki tu dung
-			beq $s5, $t5, _DuDoanOChu.Thang # Neu so tu doan dung = do dai de thi -> thang
+                KiTuDung:
+                    lb $t4, ($s2)
+                    bne $t4, '*', KiTuDung.Continue
+                    # Neu bang dau *, thi moi luu vao de thi, va tang so luong ki tu doan dung
+                    sb $s3, ($s2)
+                    addi $s5, $s5, 1 # +1 so ki tu dung
+                    beq $s5, $t5, _DuDoanOChu.Thang # Neu so tu doan dung = do dai de thi -> thang
 
-			KiTuDung.Continue:
-			li $s4, 1 # Cho biet ki tu nay da dung
-			addi $s1, $s1, 1
-			addi $s2, $s2, 1
-			j _DoanKiTu.KiemTraKiTu
+                KiTuDung.Continue:
+                    li $s4, 1 # Cho biet ki tu nay da dung
+                    addi $s1, $s1, 1
+                    addi $s2, $s2, 1
+                    j _DoanKiTu.KiemTraKiTu
 
 	ThuaCuoc:
 		li $a0, 8
@@ -734,26 +684,26 @@ _ThucHienDuDoan:
 
 		li $v0, 0
 
-_DuDoan.CuoiHam:
+    _DuDoan.CuoiHam:
 
-	#=== Cuoi ham
-	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	lw $s1, 8($sp)
-	lw $s2, 12($sp)
-	lw $s3, 16($sp)
-	lw $s4, 36($sp)
-	lw $s5, 52($sp)
-	lw $t0, 20($sp)
-	lw $t1, 24($sp)
-	lw $t2, 28($sp)
-	lw $t3, 32($sp)
-	lw $t4, 40($sp)
-	lw $t5, 44($sp)
-	lw $t6, 48($sp)
-	lw $t7, 56($sp)
-	addi $sp, $sp, 64
-	jr $ra
+        #=== Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        lw $t7, 56($sp)
+        addi $sp, $sp, 64
+        jr $ra
 
 	
 
@@ -780,10 +730,10 @@ _KhoiTaoOChuDuDoan:
 	move $s1, $a0
 
 	_KhoiTaoOChu.lap:
-	sb $t2, ($s1)
-	addi $t0, $t0, 1
-	addi $s1, $s1, 1
-	blt $t0, $t1, _KhoiTaoOChu.lap
+        sb $t2, ($s1)
+        addi $t0, $t0, 1
+        addi $s1, $s1, 1
+        blt $t0, $t1, _KhoiTaoOChu.lap
 
 	#=== Cuoi ham
 	lw $ra, ($sp)
@@ -830,19 +780,17 @@ _ShowOChuDuDoan:
 	syscall
 
 	_ShowOChu.lap:
-	lb $t2, ($s1)
-	
-	li $v0, 11
-	move $a0, $t2
-	syscall
+        lb $t2, ($s1)
+        
+        li $v0, 11
+        move $a0, $t2
+        syscall
 
-	addi $t0, $t0, 1
-	addi $s1, $s1, 1
-	blt $t0, $t1, _ShowOChu.lap
-	
-	li $v0, 11
-	li $a0, '\n'
-	syscall
+        addi $t0, $t0, 1
+        addi $s1, $s1, 1
+        blt $t0, $t1, _ShowOChu.lap
+        
+    jal _XuongDong
 	
 	#=== Cuoi ham
 	lw $ra, ($sp)
@@ -877,12 +825,12 @@ _KhoiTaoMang: # Khoi tao 250 phan tu trong mang = 0
 	move $s0, $a0 # Chuyen mang vao s0
 	move $s1, $a1
 
-_KhoiTaoMang.Lap:
-	sb $0, ($s0)
-	addi $t0, $t0, 1
-	addi $s0, $s0, 1
-	slt $t1, $t0, $s1
-	beq $t1, 1, _KhoiTaoMang.Lap
+    _KhoiTaoMang.Lap:
+        sb $0, ($s0)
+        addi $t0, $t0, 1
+        addi $s0, $s0, 1
+        slt $t1, $t0, $s1
+        beq $t1, 1, _KhoiTaoMang.Lap
 
 #=== Cuoi ham
 	lw $ra, ($sp)
@@ -914,60 +862,60 @@ _NhapTen:
 	sw $t3, 32($sp)
 	# Than ham
 	_NhapTen.ThucHien: # Thuc hien viec nhap ten vao may tinh
-	li $v0, 4
-	la $a0, tbNhapTen
-	syscall
+        li $v0, 4
+        la $a0, tbNhapTen
+        syscall
 
-	li $v0, 8
-	la $a0, tenNguoiChoi
-	li $a1, 10
-	syscall
+        li $v0, 8
+        la $a0, tenNguoiChoi
+        li $a1, 10
+        syscall
 
-	la $s0, tenNguoiChoi
-	li $t3, 0
+        la $s0, tenNguoiChoi
+        li $t3, 0
 
 	_NhapTen.KiemTra.Lap: # Kiem tra ten co hop le hay khong
-	lb $t0, ($s0)
-	
-	# a[i] < 48 '0'
-	blt $t0, '0', _NhapTen.KhongHopLe
-	
-	# a[i] > 57 '9'
-	bgt $t0, '9',  _KiemTra.ChuHoa
-	j _ChuCai.HopLe
+        lb $t0, ($s0)
+        
+        # a[i] < 48 '0'
+        blt $t0, '0', _NhapTen.KhongHopLe
+        
+        # a[i] > 57 '9'
+        bgt $t0, '9',  _KiemTra.ChuHoa
+        j _ChuCai.HopLe
 
 	_KiemTra.ChuHoa:
-	# a[i] < 65 'A'
-	blt $t0, 'A', _NhapTen.KhongHopLe
-	
-	# a[i] > 90
-	bgt $t0, 'Z',  _KiemTra.ChuThuong
-	j _ChuCai.HopLe
+        # a[i] < 65 'A'
+        blt $t0, 'A', _NhapTen.KhongHopLe
+        
+        # a[i] > 90
+        bgt $t0, 'Z',  _KiemTra.ChuThuong
+        j _ChuCai.HopLe
 
 	_KiemTra.ChuThuong:
-	# a[i] < 97 'a'
-	blt $t0, 'a', _NhapTen.KhongHopLe
+        # a[i] < 97 'a'
+        blt $t0, 'a', _NhapTen.KhongHopLe
 
-	# a[i] > 122 'z'
-	bgt $t0, 'z',  _NhapTen.KhongHopLe
-	j _ChuCai.HopLe
+        # a[i] > 122 'z'
+        bgt $t0, 'z',  _NhapTen.KhongHopLe
+        j _ChuCai.HopLe
 
 
 	_ChuCai.HopLe: # Neu chu cai hop le
-	li $t3, '\n'
-	addi $s0, $s0, 1
-	lb $t2, ($s0)
-	beq $t2, $t3, _NhapTen.HopLe
-	j _NhapTen.KiemTra.Lap
+        li $t3, '\n'
+        addi $s0, $s0, 1
+        lb $t2, ($s0)
+        beq $t2, $t3, _NhapTen.HopLe
+        j _NhapTen.KiemTra.Lap
 
 	_NhapTen.HopLe: # Ket thuc phan nhap ten, in ten nguoi nhap
-	li $v0, 4
-	la $a0, inTenNguoiChoi
-	syscall
+        li $v0, 4
+        la $a0, inTenNguoiChoi
+        syscall
 
-	li $v0, 4
-	la $a0, tenNguoiChoi
-	syscall
+        li $v0, 4
+        la $a0, tenNguoiChoi
+        syscall
 
 
 	# Cuoi ham
@@ -985,18 +933,18 @@ _NhapTen:
 	jr $ra
 
 	_NhapTen.KhongHopLe:
-	li $v0, 4
-	la $a0, tbTenKhongHopLe
-	syscall
+        li $v0, 4
+        la $a0, tbTenKhongHopLe
+        syscall
 
-	la $a0, tenNguoiChoi
-	li $a1, 10
-	jal _KhoiTaoMang
+        la $a0, tenNguoiChoi
+        li $a1, 10
+        jal _KhoiTaoMang
 
-	j _NhapTen.ThucHien
+        j _NhapTen.ThucHien
 	
 
-#======================= Xuat mang (mang) ===========================================#
+#======================= Xuat mang (so phan tu,mang) ===========================================#
 _XuatMang:
 
 #Dau mang
@@ -1012,28 +960,28 @@ _XuatMang:
 
 #Than mang
 	li $t0, 0
-XuatMang.Loop:
-	li $v0, 1
-	lw $a0, ($s1)
-	syscall
+    XuatMang.Loop:
+        li $v0, 1
+        lw $a0, ($s1)
+        syscall
 
-	li $v0, 11
-	li $a0, ' '
-	syscall
+        li $v0, 11
+        li $a0, ' '
+        syscall
 
-	addi $s1, $s1, 4
-	addi $t0, $t0, 1
-	slt $t1, $t0, $s0
-	beq $t1, 1, XuatMang.Loop
+        addi $s1, $s1, 4
+        addi $t0, $t0, 1
+        slt $t1, $t0, $s0
+        beq $t1, 1, XuatMang.Loop
 
-#Cuoi mang
-	lw $ra, ($sp)
-	lw $s0, 4($sp)
-	lw $s1, 8($sp)
-	lw $t0, 12($sp)
-	lw $t1, 16($sp)
-	addi $sp, $sp, 32
-	jr $ra
+    #Cuoi mang
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $t0, 12($sp)
+        lw $t1, 16($sp)
+        addi $sp, $sp, 32
+        jr $ra
 
 #======== Ham doc file, lay so de thi ========================#
 _DocFileDeThi:
@@ -1078,21 +1026,21 @@ _DocFileDeThi:
 	la $s1, cacDeThi
 	li $t1, '*'
 
-DemSoTu:
-	lb $t2, ($s1) # $t2 luu ket qua hien tai
-	addi $s1, $s1, 1
-	addi $t0, $t0, 1
-	
-	# Neu ki tu = '\n'
-	bne $t2, $t1, DemSoTu.Test
-	addi $s0, $s0, 1 # Neu la ki tu '*', tang so tu len 1 	
+    DemSoTu:
+        lb $t2, ($s1) # $t2 luu ket qua hien tai
+        addi $s1, $s1, 1
+        addi $t0, $t0, 1
+        
+        # Neu ki tu = '\n'
+        bne $t2, $t1, DemSoTu.Test
+        addi $s0, $s0, 1 # Neu la ki tu '*', tang so tu len 1 	
 
-DemSoTu.Test:
-	# Kiem tra xem load het mang chua
-	slt $t3, $t0, $s2
-	beq $t3, 1, DemSoTu
+    DemSoTu.Test:
+        # Kiem tra xem load het mang chua
+        slt $t3, $t0, $s2
+        beq $t3, 1, DemSoTu
 
-	sw $s0, soDeThi
+        sw $s0, soDeThi
 
 #===== Cuoi ham
 	lw $ra, ($sp)
@@ -1108,9 +1056,11 @@ DemSoTu.Test:
 	addi $sp, $sp, 64
 	jr $ra
 
+
+
 #=================== Ham lay de thi ngau nhien ======================================#
 _LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do dai de thi vao $v1, luu so de thi vao $v2
-#=====Dau ham
+	# Dau ham
 	addi $sp, $sp, -64
 	sw $ra, ($sp)
 	sw $s0, 4($sp)
@@ -1124,7 +1074,7 @@ _LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do d
 	sw $t2, 28($sp)
 	sw $t3, 32($sp)
 
-#=====Than ham
+	# Than ham
 	#Kiem tra xem da thi het 250 de hay chua, neu co thi ket thuc luon
 	lw $s0, soDeDaThi
 	lw $s1, soDeThi
@@ -1133,97 +1083,319 @@ _LayDeThiNgauNhien: # LayNgauNhien(mang de da thi) .Luu de thi vao $v0, luu do d
 
 
 
-TaoSoNgauNhienMoi:
-	# Tao so ngau nhien luu vao $a0
-	li $v0, 42
-	lw $a1, soDeThi
-	syscall 
+    TaoSoNgauNhienMoi:
+        # Tao so ngau nhien luu vao $a0
+        li $v0, 42
+        lw $a1, soDeThi
+        syscall 
 
-	# s0 la so ngau nhien
-	move $s0, $a0
-	addi $s0, $s0, 1
+        # s0 la so ngau nhien
+        move $s0, $a0
+        addi $s0, $s0, 1
 
-	la $s4, mangDeDaThi
-	# Kiem tra xem so ngau nhien do co bi trung vs cac de da thi hay ko
-TaoSoNgauNhien.Trung:
-	lw $t1, ($s4)
-	beq $t1, $0, TaoSoNgauNhien.ThemSoVaoMang
-	beq $t1, $s0, TaoSoNgauNhienMoi
-	addi $s4, $s4, 4
-	j TaoSoNgauNhien.Trung
+        la $s4, mangDeDaThi
+        # Kiem tra xem so ngau nhien do co bi trung vs cac de da thi hay ko
+    TaoSoNgauNhien.Trung:
+        lw $t1, ($s4)
+        beq $t1, $0, TaoSoNgauNhien.ThemSoVaoMang
+        beq $t1, $s0, TaoSoNgauNhienMoi
+        addi $s4, $s4, 4
+        j TaoSoNgauNhien.Trung
 
 
 
-TaoSoNgauNhien.ThemSoVaoMang:
-	sw $s0, ($s4)
+    TaoSoNgauNhien.ThemSoVaoMang:
+        sw $s0, ($s4)
 
-	#Tang so de da thi them 1
-	lw $s2, soDeDaThi
-	addi $s2, $s2, 1
-	sw $s2, soDeDaThi
+        #Tang so de da thi them 1
+        lw $s2, soDeDaThi
+        addi $s2, $s2, 1
+        sw $s2, soDeDaThi
 
+        
+    #=== Lay de thi ====#
+        # s0 la so ngau nhien + 1
+        li $t0, 1
+        la $s1, cacDeThi
+        la $s2, dethi
+        li $s3, 0
+        la $t2, '*'
+        la $t3, '\0'
+    LayDeThi.loop:
+        beq $t0, $s0, LayDeThi.LayTu # Neu i = n -> bat dau lay tu
+        lb $t1, ($s1) #Lay tung ki tu so sanh vs *
+        addi $s1, $s1, 1
+        bne $t1, $t2, LayDeThi.loop
+        addi $t0, $t0, 1
+        j LayDeThi.loop
+
+    LayDeThi.LayTu:
+        lb $t1, ($s1)
+
+        beq $t1, $t2, LayDeThi.KetThuc # Neu = '*' hoac = '\0' -> ket thuc
+        beqz $t1, LayDeThi.KetThuc
+        sb $t1, ($s2) # Neu la ki tu binh thuong thi luu vao mang moi
+
+        addi $s1, $s1, 1 #Tang cac bien dem, str
+        addi $s2, $s2, 1
+        addi $s3, $s3, 1
+
+        j LayDeThi.LayTu
+
+    LayDeThi.KetThuc:
+        # Luu do dai de thi vao s3, luu de thi vao s2 
+        sw $s3, doDaiDeThi
+
+    # Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 40($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        addi $sp, $sp, 64
+        jr $ra
+
+    LayDeThi.ThiHetRoi:
+        jal _LuuNguoiChoi
+
+        li $v0, 4
+        la $a0, tbTroChoiKetThuc
+        syscall
+
+        li $v0, 10
+        syscall
+
+#============ Doc file nguoi choi, luu vao mangNguoiChoi =================#
+_DocFileNguoiChoi:
+	#Dau ham
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+	#Than ham
+	la $a0, cacNguoiChoi
+	li $a1, 900
+	jal _KhoiTaoMang
+	sw $0, soNguoiChoi
+
+	#openfile
+	li $v0, 13
+	la $a0, fout
+	li $a1, 0 # Mo de doc
+	li $a2, 0
+	syscall
+
+	#Sau khi open, $v0 chua file descriptor 
+
+	#Luu dia chi file ds vao $s0
+	move $s0, $v0 
+
+	#Read file
+	li $v0, 14
+	move $a0, $s0
+	la $a1, cacNguoiChoi
+	li $a2, 900
+	syscall
+
+	# Dong file
+	li $v0, 16
+	move $a0, $s0
+	syscall
+
+	#Dem so nguoi choi, luu vao $s0
+	li $t0, 0 # Bien dem
+	la $s0, cacNguoiChoi 
+	la $s1, mangNguoiChoi
+	li $t1, '\n'
+	li $t3, 0
+	li $t4, 30
+
+	TaoMangNguoiChoi:
+        lb $t2, ($s0)
+        beqz $t2, TaoMangNguoiChoi.KetThuc
+        beq $t2, $t1, TaoMangNguoiChoi.TangPhanTu
+
+        sb $t2, ($s1)
+        addi $s0, $s0, 1
+        addi $s1, $s1, 1
+        addi $t3, $t3 ,1
+        j TaoMangNguoiChoi
+
+	TaoMangNguoiChoi.TangPhanTu:
+        sub $t3, $t4, $t3
+        li $t5, 0
+        li $t2, '*'
+        LapDayPhanTu:
+            bge $t5, $t3, TaoMangNguoiChoi.TangPhanTu.Continue
+            sb $t2, ($s1)
+            addi $s1, $s1, 1
+            addi $t5, $t5, 1
+            j LapDayPhanTu
+
+	TaoMangNguoiChoi.TangPhanTu.Continue:
+        addi $s0, $s0, 1
+        addi $t0, $t0, 1
+        li $t3, 0
+        j TaoMangNguoiChoi
 	
-#=== Lay de thi ====#
-	# s0 la so ngau nhien + 1
-	li $t0, 1
-	la $s1, cacDeThi
-	la $s2, dethi
-	li $s3, 0
-	la $t2, '*'
-	la $t3, '\0'
-LayDeThi.loop:
-	beq $t0, $s0, LayDeThi.LayTu # Neu i = n -> bat dau lay tu
-	lb $t1, ($s1) #Lay tung ki tu so sanh vs *
-	addi $s1, $s1, 1
-	bne $t1, $t2, LayDeThi.loop
-	addi $t0, $t0, 1
-	j LayDeThi.loop
+	TaoMangNguoiChoi.KetThuc:
+	    sw $t0, soNguoiChoi
+	
+	#Cuoi ham
+        li $v0, 4
+        la $a0, mangNguoiChoi
+        syscall
+        jal _XuongDong
+	
+	jal _TaoMangThuTu
 
-LayDeThi.LayTu:
-	lb $t1, ($s1)
+	lw $a0, soNguoiChoi
+	la $a1, mangThuTu
+	jal _XuatMang
+	jal _XuongDong
 
-	beq $t1, $t2, LayDeThi.KetThuc # Neu = '*' hoac = '\0' -> ket thuc
-	beqz $t1, LayDeThi.KetThuc
-	sb $t1, ($s2) # Neu la ki tu binh thuong thi luu vao mang moi
-
-	addi $s1, $s1, 1 #Tang cac bien dem, str
-	addi $s2, $s2, 1
-	addi $s3, $s3, 1
-
-	j LayDeThi.LayTu
-
-LayDeThi.KetThuc:
-	# Luu do dai de thi vao s3, luu de thi vao s2 
-	sw $s3, doDaiDeThi
-
-#===== Cuoi ham
 	lw $ra, ($sp)
 	lw $s0, 4($sp)
 	lw $s1, 8($sp)
 	lw $s2, 12($sp)
 	lw $s3, 16($sp)
 	lw $s4, 36($sp)
-	lw $s5, 40($sp)
+	lw $s5, 52($sp)
 	lw $t0, 20($sp)
 	lw $t1, 24($sp)
 	lw $t2, 28($sp)
 	lw $t3, 32($sp)
+	lw $t4, 40($sp)
+	lw $t5, 44($sp)
+	lw $t6, 48($sp)
 	addi $sp, $sp, 64
 	jr $ra
 
-LayDeThi.ThiHetRoi:
-	jal _LuuNguoiChoi
-
-	li $v0, 4
-	la $a0, tbTroChoiKetThuc
-	syscall
-
-	li $v0, 10
-	syscall
-
-#==================== Ham gi do ===================================#
+#====== In mang nguoi choi ======#
+_InMangNguoiChoi:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+	# Than ham
+	li $t0, 0
+	lw $t1, soNguoiChoi
+	la $s0, mangNguoiChoi
+	la $s1, mangNguoiChoi
 	
+	_InMangNguoiChoi.Lap:
+        lb $t2, ($s0)
+        beqz $t2, _InMangNguoiChoi.PhanTuMoi
+        li $v0, 11
+        move $a0, $t2
+        syscall
+        addi $s0, $s0, 1
+        j _InMangNguoiChoi.Lap
+	
+	_InMangNguoiChoi.PhanTuMoi:
+        addi $t0, $t0, 1
+        bge $t0, $t1, _InMangNguoiChoi.KetThuc
+            jal _XuongDong
+        addi $s1, $s1, 30
+        move $s0, $s1
+        j _InMangNguoiChoi.Lap
 
+	_InMangNguoiChoi.KetThuc:
+        # Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
 
+#====== Tao mang thu tu phuc vu sap xep =====#
+_TaoMangThuTu:
+	#Dau ham 
+	addi $sp, $sp, -64
+	sw $ra, ($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 36($sp)
+	sw $s5, 52($sp)
+	sw $t0, 20($sp)
+	sw $t1, 24($sp)
+	sw $t2, 28($sp)
+	sw $t3, 32($sp)
+	sw $t4, 40($sp)
+	sw $t5, 44($sp)
+	sw $t6, 48($sp)
+
+	# Than ham
+	lw $s0, soNguoiChoi
+	la $s1, mangThuTu
+	li $t0, 0
+	
+	_TaoMangThuTu.Lap:
+		bge $t0, $s0, _TaoMangThuTu.End
+		sw $t0, ($s1)
+		addi $t0, $t0, 1
+		addi $s1, $s1, 4
+		j _TaoMangThuTu.Lap
+
+	_TaoMangThuTu.End:
+	# Cuoi ham
+        lw $ra, ($sp)
+        lw $s0, 4($sp)
+        lw $s1, 8($sp)
+        lw $s2, 12($sp)
+        lw $s3, 16($sp)
+        lw $s4, 36($sp)
+        lw $s5, 52($sp)
+        lw $t0, 20($sp)
+        lw $t1, 24($sp)
+        lw $t2, 28($sp)
+        lw $t3, 32($sp)
+        lw $t4, 40($sp)
+        lw $t5, 44($sp)
+        lw $t6, 48($sp)
+        addi $sp, $sp, 64
+        jr $ra
 	
 	
