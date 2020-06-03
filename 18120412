@@ -22,7 +22,7 @@
 	inTenNguoiChoi: .asciiz "Ten nguoi choi la : "
 	inSoLuotChienThang: .asciiz "So luot choi chien thang : "
 	tbBatDauChoi: .asciiz "Bat dau choi"
-	tbTroChoiKetThuc: .asciiz "Da thi het tat ca cac de. Tro choi ket thuc\n"
+	tbTroChoiKetThuc: .asciiz "\nDa thi het tat ca cac de. Tro choi ket thuc\n"
 	tbCoMuonChoiTiep: .asciiz "Ban co muon choi tiep hay ko?\n0.Khong\n1.Co\nLua chon: "
 
 	fin: .asciiz "dethi.txt"
@@ -118,6 +118,10 @@ main.GoGo:
 	DaThua:
 	li $v0, 4
 	la $a0, tbOChuDuDoan
+	syscall
+
+	li $v0, 4
+	la $a0, dethi
 	syscall
 
 	jal _XuongDong
@@ -374,7 +378,7 @@ _LuuNguoiChoi:
         j LuuNguoiChoi.Lap
 
 	LuuNguoiChoi.ContinueDiem:
-        li $t5, ' '
+        li $t5, '-'
         sb $t5, ($s3)
         addi $s3, $s3, 1
         addi $t0, $t0, 1
@@ -398,7 +402,7 @@ _LuuNguoiChoi:
         j LuuNguoiChoi.Diem
 
 	LuuNguoiChoi.ContinueSoLuot:
-        li $t5, ' '
+        li $t5, '-'
         sb $t5, ($s3)
         addi $s3, $s3, 1
         addi $t0, $t0, 1
@@ -420,7 +424,7 @@ _LuuNguoiChoi:
 
 
 	LuuNguoiChoi.VietVaoFile:
-        li $t5, '\n'
+        li $t5, '*'
         sb $t5, ($s3)
         addi $s3, $s3, 1
         addi $t0, $t0, 1
@@ -1288,7 +1292,11 @@ _LayDeThiNgauNhien:
         jr $ra
 
     LayDeThi.ThiHetRoi:
-        jal _LuuNguoiChoi
+	jal _LuuNguoiChoi
+
+	jal _DocFileNguoiChoi
+
+	jal _TaoMangDiem
 
         li $v0, 4
         la $a0, tbTroChoiKetThuc
@@ -1349,7 +1357,7 @@ _DocFileNguoiChoi:
 	li $t0, 0 # Bien dem
 	la $s0, cacNguoiChoi 
 	la $s1, mangNguoiChoi
-	li $t1, '\n'
+	li $t1, '*'
 	li $t3, 0
 	li $t4, 30
 
@@ -1406,66 +1414,6 @@ _DocFileNguoiChoi:
 	addi $sp, $sp, 64
 	jr $ra
 
-#====== In mang nguoi choi ======#
-_InMangNguoiChoi:
-	#Dau ham 
-	addi $sp, $sp, -64
-	sw $ra, ($sp)
-	sw $s0, 4($sp)
-	sw $s1, 8($sp)
-	sw $s2, 12($sp)
-	sw $s3, 16($sp)
-	sw $s4, 36($sp)
-	sw $s5, 52($sp)
-	sw $t0, 20($sp)
-	sw $t1, 24($sp)
-	sw $t2, 28($sp)
-	sw $t3, 32($sp)
-	sw $t4, 40($sp)
-	sw $t5, 44($sp)
-	sw $t6, 48($sp)
-	# Than ham
-	li $t0, 0
-	lw $t1, soNguoiChoi
-	la $s0, mangNguoiChoi
-	la $s1, mangNguoiChoi
-	
-	_InMangNguoiChoi.Lap:
-        lb $t2, ($s0)
-        beqz $t2, _InMangNguoiChoi.PhanTuMoi
-        li $v0, 11
-        move $a0, $t2
-        syscall
-        addi $s0, $s0, 1
-        j _InMangNguoiChoi.Lap
-	
-	_InMangNguoiChoi.PhanTuMoi:
-        addi $t0, $t0, 1
-        bge $t0, $t1, _InMangNguoiChoi.KetThuc
-            jal _XuongDong
-        addi $s1, $s1, 30
-        move $s0, $s1
-        j _InMangNguoiChoi.Lap
-
-	_InMangNguoiChoi.KetThuc:
-        # Cuoi ham
-        lw $ra, ($sp)
-        lw $s0, 4($sp)
-        lw $s1, 8($sp)
-        lw $s2, 12($sp)
-        lw $s3, 16($sp)
-        lw $s4, 36($sp)
-        lw $s5, 52($sp)
-        lw $t0, 20($sp)
-        lw $t1, 24($sp)
-        lw $t2, 28($sp)
-        lw $t3, 32($sp)
-        lw $t4, 40($sp)
-        lw $t5, 44($sp)
-        lw $t6, 48($sp)
-        addi $sp, $sp, 64
-        jr $ra
-
 #====== Tao mang thu tu phuc vu sap xep =====#
 _TaoMangThuTu:
 	#Dau ham 
@@ -1521,7 +1469,7 @@ _TaoMangThuTu:
         jr $ra
 	
 	
-#==== Tao mang diem =====#
+#==== Tao mang diem, in top 10 nguoi choi diem cao nhat =====#
 _TaoMangDiem:
 	#Dau ham 
 	addi $sp, $sp, -64
@@ -1547,7 +1495,7 @@ _TaoMangDiem:
 
 	li $t0, 0
 	li $t1, 0
-	li $t2, ' '
+	li $t2, '-'
 	lw $s0, soNguoiChoi
 	la $s1, cacNguoiChoi
 	la $s2, mangDiem
